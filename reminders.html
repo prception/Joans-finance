@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en" data-page="reminders">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reminders · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-5xl mx-auto">
+
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-xl font-semibold">Reminders &amp; Recurring</h1>
+        <p class="text-sm text-slate-500">Upcoming dates to act on, and the recurring income/expenses that generate transactions automatically.</p>
+      </div>
+      <div class="flex gap-2">
+        <button data-requires="manage_recurring" onclick="openRecurring()" class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2.5">+ Add Recurring</button>
+        <button data-requires="manage_recurring" onclick="App.openModal('modal-add-reminder')" class="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg px-4 py-2.5">+ Add Reminder</button>
+      </div>
+    </div>
+
+    <div id="tabs" class="inline-flex bg-slate-100 rounded-lg p-1 text-sm">
+      <button data-tab="reminders" class="px-4 py-1.5 rounded-md font-medium bg-white shadow-sm text-slate-900">Reminders</button>
+      <button data-tab="recurring" class="px-4 py-1.5 rounded-md font-medium text-slate-500">Recurring Transactions</button>
+    </div>
+
+    <div data-tab-panel="reminders" class="space-y-3" id="reminder-list"></div>
+
+    <div data-tab-panel="recurring" class="card hidden">
+      <div id="recurring-table" class="overflow-x-auto"></div>
+    </div>
+  </div>
+</main>
+
+<div id="modal-add-reminder" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Add Reminder</h2><button onclick="App.closeModal('modal-add-reminder')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Reminder saved (prototype)." class="space-y-4">
+      <label class="text-sm block">Title<input required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm block">Category<select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>EMI</option><option>Insurance Renewal</option><option>Vehicle Registration</option><option>Property Payment</option><option>Deposit Maturity</option><option>Investment Review</option><option>Recurring Income</option><option>Recurring Expense</option><option>Custom</option></select></label>
+      <label class="text-sm block">Due Date<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm block">Related Record (optional)<select id="rem-related" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">— None —</option></select></label>
+      <label class="text-sm block">Notes<textarea rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-add-reminder')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Reminder</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-add-recurring" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-lg p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Add Recurring Transaction</h2><button onclick="App.closeModal('modal-add-recurring')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Recurring transaction saved (prototype)." class="grid grid-cols-2 gap-4">
+      <label class="col-span-2 text-sm">Name<input id="rec-name" required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. Netflix subscription" /></label>
+      <label class="text-sm">Type<select id="rec-kind" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Income</option><option>Expense</option><option>Loan Payment</option></select></label>
+      <label class="text-sm" data-kind="Income">Income Source<select id="rec-source" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm hidden" data-kind="Expense">Expense Category<select id="rec-category" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm hidden" data-kind="Loan Payment">Liability<select id="rec-liability" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm">Amount<input id="rec-amount" type="number" step="any" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Currency<select id="rec-currency" data-options="currency" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm">Frequency<select id="rec-frequency" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Weekly</option><option selected>Monthly</option><option>Quarterly</option><option>Yearly</option><option value="Custom">Custom (every N days)</option></select></label>
+      <label class="text-sm hidden" id="rec-days-wrap">Every N Days<input type="number" min="1" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. 45" /></label>
+      <label class="text-sm">Start Date<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">End Date (optional)<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Account<select id="rec-account" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm" data-kind="Income|Expense">Linked Investment (optional)<select id="rec-investment" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">— None —</option></select></label>
+      <p class="col-span-2 text-xs text-slate-400 hidden" data-kind="Loan Payment">Each EMI is posted as a loan payment: the principal reduces the outstanding balance and only the interest is recorded as an expense.</p>
+      <p class="col-span-2 text-xs text-slate-400">Each period creates exactly one transaction. If one already exists for that period, it is skipped, so nothing is posted twice.</p>
+      <div class="col-span-2 flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-add-recurring')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  App.injectShell("reminders");
+  App.initTabs(document.getElementById("tabs").parentElement);
+  const fill = (id, items) => document.getElementById(id).innerHTML += items.join("");
+  fill("rec-account", MOCK.accounts.map(a => `<option>${a.name}</option>`));
+  fill("rec-source", MOCK.incomeSources.map(s => `<option>${s.name}</option>`));
+  fill("rec-category", Object.entries(MOCK.expenseCategories).map(([g, cats]) => `<optgroup label="${g}">${cats.map(c => `<option>${c}</option>`).join("")}</optgroup>`));
+  fill("rec-liability", MOCK.liabilities.filter(l => l.emi).map(l => `<option value="${l.id}">${l.name}</option>`));
+  fill("rec-investment", MOCK.investments.filter(i => i.status !== "sold").map(i => `<option>${i.name}</option>`));
+  fill("rem-related", [...MOCK.investments.map(i => i.name), ...MOCK.liabilities.map(l => l.name), ...MOCK.accounts.map(a => a.name)].map(n => `<option>${n}</option>`));
+
+  // Show only the fields that apply to the chosen recurring type.
+  const kindSelect = document.getElementById("rec-kind");
+  const syncKind = () => document.querySelectorAll("#modal-add-recurring [data-kind]").forEach(el =>
+    el.classList.toggle("hidden", !el.dataset.kind.split("|").includes(kindSelect.value)));
+  kindSelect.addEventListener("change", syncKind);
+  document.getElementById("rec-frequency").addEventListener("change", e => document.getElementById("rec-days-wrap").classList.toggle("hidden", e.target.value !== "Custom"));
+  syncKind();
+
+  function openRecurring(id) {
+    const r = MOCK.recurring.find(x => x.id === id);
+    document.getElementById("rec-name").value = r?.name || "";
+    document.getElementById("rec-amount").value = r?.amount ?? "";
+    kindSelect.value = r?.kind || "Income";
+    document.getElementById("rec-frequency").value = r?.frequency || "Monthly";
+    if (r) document.getElementById("rec-currency").value = r.currency;
+    if (r?.liabilityId) document.getElementById("rec-liability").value = r.liabilityId;
+    syncKind();
+    App.openModal("modal-add-recurring");
+  }
+
+  const toneFor = s => s === "due-soon" ? "amber" : s === "upcoming" ? "teal" : "slate";
+  document.getElementById("reminder-list").innerHTML = [...MOCK.reminders].sort((a, b) => a.due.localeCompare(b.due)).map(r => `
+    <div class="card p-4 flex items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-semibold text-slate-500">${new Date(r.due + "T00:00:00").toLocaleDateString(undefined, { day: "2-digit" })}</div>
+        <div>
+          <p class="text-sm font-medium text-slate-800">${r.title}</p>
+          <p class="text-xs text-slate-400">${r.category} · ${r.related} · ${App.fmtDate(r.due)}</p>
+        </div>
+      </div>
+      ${App.badge(r.status === "due-soon" ? "Due soon" : r.status === "upcoming" ? "Upcoming" : "Scheduled", toneFor(r.status))}
+    </div>`).join("");
+
+  App.renderTable(document.getElementById("recurring-table"), {
+    columns: [
+      { label: "Name", render: r => r.name },
+      { label: "Type", render: r => App.badge(r.kind, { Income: "green", Expense: "red", "Loan Payment": "amber" }[r.kind]) },
+      { label: "Amount", cls: "text-right", render: r => App.fmtMoney(r.amount, r.currency) },
+      { label: "Frequency", render: r => r.frequency },
+      { label: "Next Run", sort: r => r.nextRun, render: r => App.fmtDate(r.nextRun) },
+      { label: "", cls: "text-right", render: r => `<button data-requires="manage_recurring" onclick="openRecurring('${r.id}')" class="text-xs font-medium text-teal-700">Edit</button>` },
+    ],
+    rows: MOCK.recurring,
+  });
+  App.applyPermissionGating();
+</script>
+</body>
+</html>

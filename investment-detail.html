@@ -1,0 +1,441 @@
+<!doctype html>
+<html lang="en" data-page="investments">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Investment Detail · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-6xl mx-auto">
+
+    <a href="investments.html" class="text-xs text-slate-400 hover:text-slate-600">← Back to Portfolio</a>
+
+    <div class="card p-6" id="header-card"></div>
+
+    <div id="summary-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+    <div id="tabs" class="inline-flex bg-slate-100 rounded-lg p-1 text-sm flex-wrap">
+      <button data-tab="overview" class="px-4 py-1.5 rounded-md font-medium bg-white shadow-sm text-slate-900">Overview</button>
+      <button id="tab-construction-btn" data-tab="construction" class="hidden px-4 py-1.5 rounded-md font-medium text-slate-500">Construction Tracker</button>
+      <button data-tab="transactions" class="px-4 py-1.5 rounded-md font-medium text-slate-500">Transactions</button>
+      <button data-tab="valuations" class="px-4 py-1.5 rounded-md font-medium text-slate-500">Valuation History</button>
+      <button data-tab="documents" class="px-4 py-1.5 rounded-md font-medium text-slate-500">Documents</button>
+    </div>
+
+    <div data-tab-panel="overview" class="card p-6">
+      <p class="text-sm font-semibold mb-4">Details</p>
+      <div id="common-fields" class="grid sm:grid-cols-3 gap-4 mb-6 pb-6 border-b border-slate-100"></div>
+      <div id="operating-block" class="hidden mb-6 pb-6 border-b border-slate-100">
+        <p class="text-sm font-semibold mb-1">Operating Profit</p>
+        <p class="text-xs text-slate-400 mb-4">Revenue − operating expenses linked to this investment (SRS §28). Cash income, separate from any change in value.</p>
+        <div id="operating-fields" class="grid sm:grid-cols-3 gap-4"></div>
+      </div>
+      <div id="holding-block" class="hidden mb-6 pb-6 border-b border-slate-100">
+        <p class="text-sm font-semibold mb-4">Holding</p>
+        <div id="holding-fields" class="grid sm:grid-cols-3 gap-4"></div>
+      </div>
+      <p class="text-sm font-semibold mb-4">Type-Specific Fields</p>
+      <div id="custom-fields" class="grid sm:grid-cols-3 gap-4"></div>
+      <div id="linked-info" class="mt-6 pt-6 border-t border-slate-100 grid sm:grid-cols-2 gap-4 text-sm"></div>
+    </div>
+
+    <div data-tab-panel="construction" class="hidden space-y-4">
+      <div class="bg-teal-50 border border-teal-200 text-teal-800 text-sm rounded-xl p-4">
+        Not type-locked — any investment can turn this on (a restaurant fit-out, a boat refit). Budget line items
+        below are defined per-investment, the same "no developer required" pattern as custom fields and investment types.
+      </div>
+
+      <div id="construction-summary-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-1">
+          <p class="text-sm font-semibold">Budget vs. Actual, by Category</p>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">Each category here is a dynamic line item — add, rename or remove them any time for this investment.</p>
+        <div id="construction-categories" class="space-y-4"></div>
+      </div>
+
+      <div class="card p-5">
+        <p class="text-sm font-semibold mb-4">Cumulative Spend vs. Budget</p>
+        <div class="h-56"><canvas id="chart-construction"></canvas></div>
+      </div>
+
+      <div class="card">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+          <p class="text-sm font-semibold">Daily Cost Log</p>
+          <button data-requires="manage_investments" onclick="App.openModal('modal-log-cost')" class="text-xs font-medium text-teal-700">+ Log Today's Cost</button>
+        </div>
+        <div id="construction-log-table" class="overflow-x-auto"></div>
+      </div>
+    </div>
+
+    <div data-tab-panel="transactions" class="card hidden">
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+        <p class="text-sm font-semibold">Transaction History</p>
+        <button data-requires="manage_investments" onclick="App.openModal('modal-add-tx')" class="text-xs font-medium text-teal-700">+ Add Transaction</button>
+      </div>
+      <div id="tx-table" class="overflow-x-auto"></div>
+    </div>
+
+    <div data-tab-panel="valuations" class="hidden space-y-4">
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-sm font-semibold">Value Over Time</p>
+          <button data-requires="manage_investments" onclick="App.openModal('modal-add-valuation')" class="text-xs font-medium text-teal-700">+ Add Valuation</button>
+        </div>
+        <div class="h-56"><canvas id="chart-valuation"></canvas></div>
+      </div>
+      <div class="card">
+        <div id="valuation-table" class="overflow-x-auto"></div>
+        <p class="p-4 text-xs text-slate-400 border-t border-slate-100">Previous valuations are never overwritten — every update adds a new dated record.</p>
+      </div>
+    </div>
+
+    <div data-tab-panel="documents" class="card hidden">
+      <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+        <p class="text-sm font-semibold">Attached Documents</p>
+        <button data-requires="manage_documents" onclick="App.openModal('modal-upload')" class="text-xs font-medium text-teal-700">+ Upload</button>
+      </div>
+      <div id="doc-list" class="divide-y divide-slate-100"></div>
+    </div>
+
+  </div>
+</main>
+
+<div id="modal-add-tx" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Add Transaction</h2><button onclick="App.closeModal('modal-add-tx')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Transaction saved (prototype)." class="grid grid-cols-2 gap-4">
+      <label class="text-sm">Date<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Type<select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+        <optgroup label="Capital"><option>Purchase</option><option>Additional Investment</option><option>Buy</option><option>Sell</option><option>Withdrawal</option><option>Transfer</option></optgroup>
+        <optgroup label="Operating"><option>Income</option><option>Dividend</option><option>Expense</option><option>Fee</option><option>Tax</option></optgroup>
+        <optgroup label="Speculative"><option>Deposit</option><option>Stake</option><option>Win</option><option>Loss</option></optgroup>
+        <optgroup label="Other"><option>Other</option></optgroup>
+      </select></label>
+      <label class="text-sm">Quantity (optional)<input type="number" step="any" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="units, coins, grams" /></label>
+      <label class="text-sm">Price per Unit (optional)<input type="number" step="any" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Amount<input type="number" step="any" data-fx="amount" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Currency<select data-options="currency" data-fx="currency" id="tx-currency" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm"><span data-fx="rate-label">Exchange Rate</span><input type="number" step="any" data-fx="rate" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Base-Currency Amount<input readonly data-fx="base" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50" /></label>
+      <label class="text-sm">Fees<input type="number" step="any" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Tax<input type="number" step="any" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="col-span-2 text-sm">Account<select id="tx-account" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="col-span-2 text-sm">Notes<textarea rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></label>
+      <div class="col-span-2 flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-add-tx')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-add-valuation" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Update Current Value</h2><button onclick="App.closeModal('modal-add-valuation')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="New valuation recorded — history preserved (prototype)." class="space-y-4">
+      <label class="text-sm block">As of Date<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm block">New Value<input type="number" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm block">Notes<textarea rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Why the value changed..."></textarea></label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-add-valuation')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Valuation</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-sell" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Sell / Close Investment</h2><button onclick="App.closeModal('modal-sell')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Investment closed — gain moved from unrealized to realized (prototype)." class="grid grid-cols-2 gap-4">
+      <label class="text-sm">Sale Date<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Quantity Sold<input type="number" step="any" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Leave blank to sell all" /></label>
+      <label class="text-sm">Sale Price<input type="number" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Fees / Taxes<input type="number" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Received Into<select id="sell-account" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <p class="col-span-2 text-xs text-slate-400">Realized gain = sale price − fees − cost of the units sold (average cost). Selling everything closes the investment; it stops counting toward current value and net worth, and its history is kept.</p>
+      <div class="col-span-2 flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-sell')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Record Sale</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-log-cost" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Log Today's Cost</h2><button onclick="App.closeModal('modal-log-cost')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Cost entry logged — rolled up into category spend and cost basis (prototype)." class="grid grid-cols-2 gap-4">
+      <label class="text-sm">Date<input type="date" id="log-cost-date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Category<select id="log-cost-category" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="col-span-2 text-sm">Vendor / Contractor<input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Amount<input type="number" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Paid From<select id="log-cost-account" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="col-span-2 text-sm">Description<input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. Roof insulation — 2nd batch" /></label>
+      <div class="col-span-2 flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-log-cost')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Log Cost</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-edit" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4 overflow-y-auto">
+  <div class="card w-full max-w-lg p-6 my-8">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Edit Investment</h2><button onclick="App.closeModal('modal-edit')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Investment updated, change recorded in the audit trail (prototype)." class="grid grid-cols-2 gap-4">
+      <label class="col-span-2 text-sm">Investment Name<input id="e-name" required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="col-span-2 text-sm">Description<textarea id="e-desc" rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></label>
+      <label class="text-sm">Location<input id="e-location" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Status<select id="e-status" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="active">Active</option><option value="under_construction">Under Construction</option><option value="closed">Closed</option></select></label>
+      <label class="text-sm">Linked Account<select id="e-account" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm">Linked Liability<select id="e-liability" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">— None —</option></select></label>
+      <label class="col-span-2 text-sm">Notes<textarea id="e-notes" rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></label>
+      <p class="col-span-2 text-xs text-slate-400">Type-specific fields are edited here too in the real app. Value changes go through Update Value, so valuation history is never overwritten.</p>
+      <div class="col-span-2 flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-edit')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-upload" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Upload Document</h2><button onclick="App.closeModal('modal-upload')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Document uploaded (prototype)." class="space-y-4">
+      <label class="text-sm block">File<input type="file" required accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx" class="mt-1 w-full text-sm text-slate-500" /></label>
+      <label class="text-sm block">Document Type<select class="doc-kind mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm block">Description<input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <p class="text-xs text-slate-400">PDF, JPG, PNG, DOCX or XLSX, up to 15 MB.</p>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-upload')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Upload</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/charts.js"></script>
+<script>
+  App.injectShell("investments");
+  App.initTabs(document.getElementById("tabs").parentElement);
+
+  const params = new URLSearchParams(location.search);
+  const inv = MOCK.investments.find(i => i.id === params.get("id")) || MOCK.investments[0];
+  const type = MOCK.investmentTypes.find(t => t.id === inv.typeId);
+
+  const invested = inv.initial + inv.additional;
+  const gain = gainOf(inv);
+  const roi = (gain / invested) * 100;
+  const sold = inv.status === "sold";
+
+  const statusTone = { active: "green", under_construction: "amber", sold: "slate", closed: "slate" }[inv.status] || "slate";
+  const statusLabel = inv.status === "under_construction" ? "Under Construction" : inv.status[0].toUpperCase() + inv.status.slice(1);
+
+  document.getElementById("header-card").innerHTML = `
+    <div class="flex items-start justify-between flex-wrap gap-4">
+      <div>
+        <div class="flex items-center gap-2 mb-1">
+          <h1 class="text-xl font-semibold">${inv.name}</h1>
+          ${App.badge(statusLabel, statusTone)}
+        </div>
+        <p class="text-sm text-slate-500">${type.name} · ${inv.country} · ${inv.currency} · Acquired ${App.fmtDate(inv.acquired)}${sold ? ` · Sold ${App.fmtDate(inv.soldOn)}` : ""}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button data-requires="manage_investments" onclick="App.openModal('modal-edit')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Edit</button>
+        <button data-requires="manage_investments" onclick="App.toast('Archived — recoverable from Settings → Archive (prototype).')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Archive</button>
+        ${sold ? "" : `
+        <button data-requires="manage_investments" onclick="App.openModal('modal-sell')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Sell / Close</button>
+        <button data-requires="manage_investments" onclick="App.openModal('modal-add-valuation')" class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Update Value</button>`}
+      </div>
+    </div>`;
+
+  const personal = isPersonal(inv);
+  const op = operatingOf(inv);
+  const totalReturn = totalReturnPct(inv);
+  App.renderCards(document.getElementById("summary-cards"), [
+    { label: personal ? "Purchase Cost" : "Total Invested", value: App.fmtMoney(invested, inv.currency) },
+    sold
+      ? { label: "Sale Proceeds (net of fees)", value: App.fmtMoney(inv.saleProceeds, inv.currency) }
+      : { label: "Current Value", value: App.fmtMoney(inv.currentValue, inv.currency) },
+    { label: sold ? "Realized Gain/Loss" : "Unrealized Gain/Loss", value: App.fmtMoney(gain, inv.currency), sub: sold ? "Locked in at sale" : "Paper gain — not cash", subTone: gain >= 0 ? "green" : "red" },
+    ...(personal ? [] : [
+      { label: "ROI", value: roi.toFixed(1) + "%", sub: "Capital gain ÷ invested", subTone: roi >= 0 ? "green" : "red" },
+      { label: "Total Return", value: totalReturn.toFixed(1) + "%", sub: "Incl. net operating income", subTone: totalReturn >= 0 ? "green" : "red" },
+    ]),
+  ]);
+  document.getElementById("summary-cards").classList.toggle("lg:grid-cols-5", !personal);
+
+  const field = (label, value) => `<div><p class="text-xs text-slate-400">${label}</p><p class="text-sm font-medium text-slate-800 mt-0.5">${value ?? "—"}</p></div>`;
+  document.getElementById("common-fields").innerHTML = [
+    field("Description", inv.description), field("Location", inv.location), field("Country", inv.country),
+    field("Currency", inv.currency), field("Acquisition Date", App.fmtDate(inv.acquired)), field("Status", statusLabel),
+    `<div class="sm:col-span-3">${field("Notes", inv.notes)}</div>`,
+  ].join("");
+
+  if (op.revenue || op.expenses) {
+    document.getElementById("operating-block").classList.remove("hidden");
+    document.getElementById("operating-fields").innerHTML = [
+      field("Revenue", App.fmtMoney(op.revenue, inv.currency)),
+      field("Operating Expenses", App.fmtMoney(op.expenses, inv.currency)),
+      field("Operating Profit", `<span class="${op.profit >= 0 ? "text-emerald-600" : "text-rose-600"}">${App.fmtMoney(op.profit, inv.currency)}</span>`),
+    ].join("");
+  }
+
+  // Quantity-based holdings (crypto, gold, trading): units held + average cost (SRS §19).
+  const qtyTxs = (MOCK.investmentTransactions[inv.id] || []).filter(t => t.quantity);
+  if (qtyTxs.length) {
+    const buys = qtyTxs.filter(t => t.type === "Buy");
+    const boughtQty = buys.reduce((s, t) => s + t.quantity, 0);
+    const heldQty = boughtQty - qtyTxs.filter(t => t.type === "Sell").reduce((s, t) => s + t.quantity, 0);
+    const avgCost = buys.reduce((s, t) => s - t.amount, 0) / boughtQty;
+    document.getElementById("holding-block").classList.remove("hidden");
+    document.getElementById("holding-fields").innerHTML = [
+      field("Quantity Held", +heldQty.toFixed(8)),
+      field("Average Cost per Unit", App.fmtMoney(avgCost, inv.currency)),
+      field("Current Value per Unit", heldQty ? App.fmtMoney(inv.currentValue / heldQty, inv.currency) : "—"),
+    ].join("");
+  }
+
+  // Edit / transaction / upload forms
+  document.getElementById("e-name").value = inv.name;
+  document.getElementById("e-desc").value = inv.description || "";
+  document.getElementById("e-location").value = inv.location || "";
+  document.getElementById("e-status").value = inv.status;
+  document.getElementById("e-notes").value = inv.notes || "";
+  document.getElementById("e-account").innerHTML = MOCK.accounts.map(a => `<option value="${a.id}" ${a.id === inv.account ? "selected" : ""}>${a.name}</option>`).join("");
+  document.getElementById("e-liability").innerHTML += MOCK.liabilities.map(l => `<option value="${l.id}" ${l.id === inv.liability ? "selected" : ""}>${l.name}</option>`).join("");
+  document.getElementById("tx-account").innerHTML = MOCK.accounts.map(a => `<option ${a.id === inv.account ? "selected" : ""}>${a.name}</option>`).join("");
+  const txCurrency = document.getElementById("tx-currency");
+  txCurrency.value = inv.currency;
+  txCurrency.dispatchEvent(new Event("change"));
+  document.querySelectorAll(".doc-kind").forEach(s => s.innerHTML = DOC_KINDS.map(k => `<option>${k}</option>`).join(""));
+  document.getElementById("sell-account").innerHTML = MOCK.accounts.map(a => `<option>${a.name}</option>`).join("");
+
+  document.getElementById("custom-fields").innerHTML = type.fields
+    .sort((a, b) => a.order - b.order)
+    .map(f => {
+      let v = inv.fields[f.id];
+      if (v === undefined || v === null || v === "") v = "—";
+      if (f.type === "Checkbox") v = v === true ? "Yes" : v === false ? "No" : "—";
+      if (f.type === "Currency" && typeof v === "number") v = App.fmtMoney(v, inv.currency);
+      if (f.type === "Percentage" && typeof v === "number") v = v + "%";
+      return `<div><p class="text-xs text-slate-400">${f.label}</p><p class="text-sm font-medium text-slate-800 mt-0.5">${v}</p></div>`;
+    }).join("");
+
+  const account = MOCK.accounts.find(a => a.id === inv.account);
+  const liability = inv.liability ? MOCK.liabilities.find(l => l.id === inv.liability) : null;
+  document.getElementById("linked-info").innerHTML = `
+    <div><p class="text-xs text-slate-400">Linked Account</p><p class="text-sm font-medium text-slate-800 mt-0.5">${account ? account.name : "—"}</p></div>
+    <div><p class="text-xs text-slate-400">Linked Liability</p><p class="text-sm font-medium text-slate-800 mt-0.5">${liability ? `<a href="liabilities.html" class="text-teal-700">${liability.name}</a>` : "—"}</p></div>`;
+
+  const allTxs = (MOCK.investmentTransactions[inv.id] || []).slice();
+
+  if (inv.construction) {
+    document.getElementById("tab-construction-btn").classList.remove("hidden");
+    const c = inv.construction;
+    const costEntries = allTxs.filter(t => t.type === "Construction Cost").sort((a, b) => a.date.localeCompare(b.date));
+    const spentTotal = costEntries.reduce((s, t) => s + Math.abs(t.amount), 0);
+    const remaining = c.totalBudget - spentTotal;
+    const daysElapsed = Math.round((new Date() - new Date(c.startDate)) / 86400000);
+
+    App.renderCards(document.getElementById("construction-summary-cards"), [
+      { label: "Total Budget", value: App.fmtMoney(c.totalBudget, inv.currency) },
+      { label: "Spent to Date", value: App.fmtMoney(spentTotal, inv.currency) },
+      { label: "Remaining Budget", value: App.fmtMoney(remaining, inv.currency), subTone: remaining >= 0 ? "green" : "red" },
+      { label: "Complete", value: c.percentComplete + "%", sub: `Started ${App.fmtDate(c.startDate)} · Target ${App.fmtDate(c.expectedCompletion)}` },
+    ]);
+
+    document.getElementById("construction-categories").innerHTML = c.categories.map(cat => {
+      const spent = costEntries.filter(t => t.category === cat.id).reduce((s, t) => s + Math.abs(t.amount), 0);
+      const pct = Math.min(100, Math.round((spent / cat.budgeted) * 100));
+      const over = spent > cat.budgeted;
+      return `
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1">
+          <p class="font-medium text-slate-800">${cat.name}</p>
+          <p class="${over ? "text-rose-600" : "text-slate-500"}">${App.fmtMoney(spent, inv.currency)} <span class="text-slate-300">/</span> ${App.fmtMoney(cat.budgeted, inv.currency)}</p>
+        </div>
+        <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden"><div class="h-full ${over ? "bg-rose-500" : "bg-teal-600"}" style="width:${pct}%"></div></div>
+      </div>`;
+    }).join("");
+
+    let cumulative = 0;
+    const cumLabels = costEntries.map(t => App.fmtDate(t.date));
+    const cumData = costEntries.map(t => (cumulative += Math.abs(t.amount)));
+    Charts.lineMulti(document.getElementById("chart-construction"), cumLabels, [
+      { label: "Actual (cumulative)", data: cumData, color: "#0f766e" },
+      { label: "Total Budget", data: cumLabels.map(() => c.totalBudget), color: "#d97706", dashed: true },
+    ]);
+
+    App.renderTable(document.getElementById("construction-log-table"), {
+      columns: [
+        { label: "Date", render: t => App.fmtDate(t.date) },
+        { label: "Category", render: t => App.badge(c.categories.find(cat => cat.id === t.category)?.name || "—", "slate") },
+        { label: "Vendor", render: t => t.vendor || "—" },
+        { label: "Description", render: t => t.desc || "—" },
+        { label: "Amount", cls: "text-right font-medium text-rose-600", render: t => App.fmtMoney(t.amount, t.currency) },
+      ],
+      rows: costEntries.slice().reverse(),
+      empty: "No costs logged yet — add the first one above.",
+    });
+
+    document.getElementById("log-cost-date").value = new Date().toISOString().slice(0, 10);
+    document.getElementById("log-cost-category").innerHTML = c.categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join("");
+    document.getElementById("log-cost-account").innerHTML = MOCK.accounts.map(a => `<option>${a.name}</option>`).join("");
+  }
+
+  const txs = allTxs.sort((a, b) => b.date.localeCompare(a.date));
+  App.renderTable(document.getElementById("tx-table"), {
+    columns: [
+      { label: "Date", render: t => App.fmtDate(t.date) },
+      { label: "Type", render: t => App.badge(t.type, t.amount >= 0 ? "green" : "slate") },
+      { label: "Quantity", render: t => t.quantity ?? "—" },
+      { label: "Amount", cls: "text-right font-medium", render: t => (t.amount >= 0 ? "+" : "") + App.fmtMoney(t.amount, t.currency) },
+    ],
+    rows: txs,
+    empty: "No transactions recorded for this investment yet.",
+  });
+
+  const valuations = (MOCK.investmentValuations[inv.id] || []).slice();
+  if (valuations.length) {
+    Charts.line(document.getElementById("chart-valuation"), valuations.map(v => App.fmtDate(v.date)), valuations.map(v => v.value), "Value");
+  } else {
+    document.getElementById("chart-valuation").parentElement.innerHTML = '<p class="text-sm text-slate-400 h-full flex items-center justify-center">No valuation history recorded yet.</p>';
+  }
+  App.renderTable(document.getElementById("valuation-table"), {
+    columns: [
+      { label: "Date", render: v => App.fmtDate(v.date) },
+      { label: "Value", cls: "text-right font-medium", render: v => App.fmtMoney(v.value, inv.currency) },
+      { label: "Change", cls: "text-right", render: v => {
+          const idx = valuations.indexOf(v);
+          if (idx === 0) return "—";
+          const diff = v.value - valuations[idx - 1].value;
+          return App.gainBadge(diff);
+        } },
+    ],
+    rows: valuations.slice().reverse(),
+    empty: "No valuation history recorded yet.",
+  });
+
+  const docs = MOCK.documents.filter(d => d.linkedTo === inv.name);
+  document.getElementById("doc-list").innerHTML = docs.length
+    ? docs.map(d => `<div class="px-4 py-3 flex items-center justify-between text-sm"><div><p class="font-medium text-slate-800">${d.name}</p><p class="text-xs text-slate-400">${d.size} · Uploaded ${App.fmtDate(d.uploaded)}</p></div><a href="#" class="text-teal-700 text-xs font-medium">Download</a></div>`).join("")
+    : '<p class="p-6 text-sm text-slate-400 text-center">No documents attached yet.</p>';
+
+  App.applyPermissionGating(); // header-card's Edit/Update Value buttons were injected after the initial pass
+</script>
+</body>
+</html>

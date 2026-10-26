@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en" data-page="accounts">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Accounts · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-xl font-semibold">Accounts</h1>
+        <p class="text-sm text-slate-500">Bank accounts, deposits, trading accounts and crypto wallets — where the money sits.</p>
+      </div>
+      <div class="flex gap-2">
+        <button data-requires="manage_accounts" onclick="App.openModal('modal-transfer')" class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2.5">⇄ Transfer</button>
+        <button data-requires="manage_accounts" onclick="App.openModal('modal-add-account')" class="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg px-4 py-2.5">+ Add Account</button>
+      </div>
+    </div>
+
+    <div id="summary-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+    <div class="card">
+      <div class="p-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+        <input id="search" placeholder="Search accounts..." class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full max-w-xs outline-none focus:ring-2 focus:ring-teal-600/30" />
+        <select id="filter-type" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All types</option></select>
+        <select id="filter-country" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All countries</option></select>
+        <select id="filter-currency" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All currencies</option></select>
+        <select id="filter-status" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">Any status</option><option value="active">Active</option><option value="dormant">Dormant</option><option value="closed">Closed</option></select>
+      </div>
+      <div id="table" class="overflow-x-auto"></div>
+    </div>
+  </div>
+</main>
+
+<div id="modal-add-account" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-lg p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-base font-semibold">Add Account</h2>
+      <button onclick="App.closeModal('modal-add-account')" class="text-slate-400">✕</button>
+    </div>
+    <form data-mock-form="Account saved (prototype — not persisted)." class="grid grid-cols-2 gap-4">
+      <label class="col-span-2 text-sm">Account Name
+        <input required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. UAE Bank — Current" />
+      </label>
+      <label class="text-sm">Institution
+        <input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. Emirates NBD" />
+      </label>
+      <label class="text-sm">Account Type
+        <select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">
+          <option>Bank</option><option>Savings</option><option>Fixed Deposit</option><option>Financial Institution Deposit</option><option>Trading</option><option>Crypto Wallet</option><option>Cash</option><option>Other</option>
+        </select>
+      </label>
+      <label class="text-sm">Country
+        <select data-options="country" data-value="AE" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select>
+      </label>
+      <label class="text-sm">Currency
+        <select data-options="currency" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select>
+      </label>
+      <label class="text-sm">Opening Balance
+        <input type="number" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="0.00" />
+      </label>
+      <label class="text-sm">Account Number
+        <input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Masked automatically" />
+      </label>
+      <label class="text-sm">Interest Rate (%)
+        <input type="number" step="any" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Deposits / savings" />
+      </label>
+      <label class="text-sm">Maturity Date
+        <input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+      </label>
+      <label class="text-sm">Status
+        <select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Active</option><option>Dormant</option><option>Closed</option></select>
+      </label>
+      <label class="col-span-2 text-sm">Notes
+        <textarea class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" rows="2"></textarea>
+      </label>
+      <p class="col-span-2 text-xs text-slate-400">Fixed and financial-institution deposits are recorded here, as accounts (with interest rate and maturity), not as investments, so they're never counted twice. Holdings bought <em>through</em> a trading account or wallet are investments; only the uninvested cash belongs here.</p>
+      <div class="col-span-2 flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-add-account')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Account</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-transfer" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-lg p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Transfer Between Accounts</h2><button onclick="App.closeModal('modal-transfer')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Transfer recorded — not counted as income or expense (prototype)." class="grid grid-cols-2 gap-4">
+      <label class="text-sm">From Account<select class="acc-options mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm">To Account<select class="acc-options mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm">Date<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Amount Sent<input type="number" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Amount Received<input type="number" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="If currencies differ" /></label>
+      <label class="text-sm">Fees<input type="number" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="col-span-2 text-sm">Notes<input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. Monthly remittance" /></label>
+      <p class="col-span-2 text-xs text-slate-400">Moving money between your own accounts is a transfer — it changes balances but is never counted as income or expense.</p>
+      <div class="col-span-2 flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-transfer')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Transfer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  App.injectShell("accounts");
+  document.querySelectorAll(".acc-options").forEach(s => s.innerHTML = MOCK.accounts.map(a => `<option>${a.name}</option>`).join(""));
+
+  const byCurrency = {};
+  MOCK.accounts.forEach(a => { byCurrency[a.currency] = (byCurrency[a.currency] || 0) + a.balance; });
+  const totalBase = MOCK.accounts.reduce((s, a) => s + toBase(a.balance, a.currency), 0);
+
+  App.renderCards(document.getElementById("summary-cards"), [
+    { label: "Total Balance (Base)", value: App.fmtMoney(totalBase) },
+    ...Object.entries(byCurrency).slice(0, 3).map(([cur, amt]) => ({ label: `Balance in ${cur}`, value: App.fmtMoney(amt, cur) })),
+  ]);
+
+  const uniq = key => [...new Set(MOCK.accounts.map(a => a[key]))];
+  document.getElementById("filter-type").innerHTML += uniq("type").map(v => `<option>${v}</option>`).join("");
+  document.getElementById("filter-country").innerHTML += uniq("country").map(v => `<option>${v}</option>`).join("");
+  document.getElementById("filter-currency").innerHTML += uniq("currency").map(v => `<option>${v}</option>`).join("");
+
+  function render() {
+    const f = id => document.getElementById(id).value;
+    const rows = MOCK.accounts.filter(a =>
+      (!f("filter-type") || a.type === f("filter-type")) &&
+      (!f("filter-country") || a.country === f("filter-country")) &&
+      (!f("filter-currency") || a.currency === f("filter-currency")) &&
+      (!f("filter-status") || a.status === f("filter-status")));
+    App.renderTable(document.getElementById("table"), {
+      columns: [
+        { label: "Account", render: a => `<a href="transactions.html?account=${a.id}" class="font-medium text-slate-800 hover:text-teal-700" title="View this account's transactions">${a.name}</a><p class="text-xs text-slate-400">${a.institution} · ${a.number}</p>` },
+        { label: "Type", render: a => App.badge(a.type, "slate") },
+        { label: "Country", render: a => a.country },
+        { label: "Currency", render: a => a.currency },
+        { label: "Balance", cls: "text-right font-medium", sort: a => a.balance, render: a => App.fmtMoney(a.balance, a.currency) },
+        { label: "Base Equivalent", cls: "text-right text-slate-500", sort: a => toBase(a.balance, a.currency), render: a => App.fmtMoney(toBase(a.balance, a.currency)) },
+        { label: "Status", render: a => App.badge(a.status, "green") },
+        { label: "", cls: "text-right", render: () => App.rowActions("manage_accounts", "account") },
+      ],
+      rows,
+    });
+  }
+  render();
+  ["filter-type", "filter-country", "filter-currency", "filter-status"].forEach(id => document.getElementById(id).addEventListener("change", render));
+  App.wireTableSearch(document.getElementById("search"), "#table tbody tr");
+</script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en" data-page="income">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Income · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-xl font-semibold">Income</h1>
+        <p class="text-sm text-slate-500">Income sources and every recorded receipt, with taxable/non-taxable classification.</p>
+      </div>
+      <div class="flex gap-2">
+        <button data-requires="manage_income" onclick="App.openModal('modal-add-source')" class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2.5">+ Income Source</button>
+        <button data-requires="manage_income" onclick="App.openModal('modal-add-income')" class="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg px-4 py-2.5">+ Record Income</button>
+      </div>
+    </div>
+
+    <div id="summary-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+    <div id="tabs" class="inline-flex bg-slate-100 rounded-lg p-1 text-sm">
+      <button data-tab="sources" class="px-4 py-1.5 rounded-md font-medium bg-white shadow-sm text-slate-900">Income Sources</button>
+      <button data-tab="transactions" class="px-4 py-1.5 rounded-md font-medium text-slate-500">Transactions</button>
+    </div>
+
+    <div data-tab-panel="sources" class="card">
+      <div id="sources-table" class="overflow-x-auto"></div>
+    </div>
+
+    <div data-tab-panel="transactions" class="card hidden">
+      <div class="p-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+        <input id="search" placeholder="Search income transactions..." class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full max-w-xs outline-none focus:ring-2 focus:ring-teal-600/30" />
+        <select id="filter-currency" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All currencies</option></select>
+        <input type="date" id="filter-from" class="border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+        <span class="text-xs text-slate-400">to</span>
+        <input type="date" id="filter-to" class="border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+      </div>
+      <div id="tx-table" class="overflow-x-auto"></div>
+    </div>
+  </div>
+</main>
+
+<div id="modal-add-source" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-lg p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">New Income Source</h2><button onclick="App.closeModal('modal-add-source')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Income source saved (prototype)." class="grid grid-cols-2 gap-4">
+      <label class="col-span-2 text-sm">Name<input required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. Freelance Consulting" /></label>
+      <label class="text-sm">Income Type
+        <select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Employment</option><option>Business</option><option>Rental</option><option>Dividends</option><option>Interest</option><option>Trading</option><option>Investment Income</option><option>Commission</option><option>Freelance</option><option>Other</option></select>
+      </label>
+      <label class="text-sm">Frequency<select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Monthly</option><option>Quarterly</option><option>Yearly</option><option>Irregular</option></select></label>
+      <label class="text-sm">Country<select data-options="country" data-value="AE" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm">Currency<select data-options="currency" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm">Default Amount<input type="number" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Tax Status
+        <select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Taxable</option><option>Non-taxable</option><option>Partially taxable</option><option>Tax status unknown</option></select>
+      </label>
+      <label class="text-sm">Start Date<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">End Date (optional)<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Status<select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Active</option><option>Inactive</option></select></label>
+      <label class="col-span-2 text-sm">Description<input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="What this income is" /></label>
+      <label class="col-span-2 text-sm">Notes<textarea rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></label>
+      <p class="col-span-2 text-xs text-slate-400">Tax status here is the default for new receipts. Each receipt can override it.</p>
+      <div class="col-span-2 flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-add-source')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Source</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-add-income" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4 overflow-y-auto">
+  <div class="card w-full max-w-lg p-6 my-8">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Record Income Receipt</h2><button onclick="App.closeModal('modal-add-income')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Income transaction saved (prototype)." class="grid grid-cols-2 gap-4">
+      <label class="text-sm">Date<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Income Source
+        <select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" id="src-select"></select>
+      </label>
+      <label class="text-sm">Gross Amount<input type="number" step="any" id="in-gross" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Tax Amount<input type="number" step="any" id="in-tax" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Other Deductions<input type="number" step="any" id="in-ded" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Net Amount<input readonly data-fx="amount" id="in-net" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50" placeholder="Gross − tax − deductions" /></label>
+      <label class="text-sm">Currency<select data-options="currency" data-fx="currency" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm"><span data-fx="rate-label">Exchange Rate</span><input type="number" step="any" data-fx="rate" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Base-Currency Amount<input readonly data-fx="base" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50" /></label>
+      <label class="text-sm">Tax Classification
+        <select id="in-taxclass" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Taxable</option><option>Non-taxable</option><option>Partially taxable</option><option>Tax status unknown</option></select>
+      </label>
+      <label class="text-sm hidden" id="in-taxable-wrap">Taxable Portion<input type="number" step="any" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Amount that is taxable" /></label>
+      <label class="text-sm">Linked Investment (optional)<select id="inv-select" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">— None —</option></select></label>
+      <label class="text-sm">Receiving Account
+        <select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" id="acc-select"></select>
+      </label>
+      <label class="text-sm">Reference<input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. SAL-NOV26" /></label>
+      <p class="col-span-2 text-xs text-slate-400">Link rental, taxi, dividend or business income to its investment so it counts toward that investment's operating profit. The exchange rate is stored with this receipt and never changes afterwards.</p>
+      <label class="col-span-2 text-sm">Attachment<input type="file" class="mt-1 w-full text-sm text-slate-500" /></label>
+      <label class="col-span-2 text-sm">Notes<textarea rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></label>
+      <div class="col-span-2 flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-add-income')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Transaction</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  App.injectShell("income");
+  App.initTabs(document.getElementById("tabs").parentElement);
+
+  document.getElementById("src-select").innerHTML = MOCK.incomeSources.map(s => `<option>${s.name}</option>`).join("");
+  document.getElementById("acc-select").innerHTML = MOCK.accounts.map(a => `<option>${a.name}</option>`).join("");
+  document.getElementById("inv-select").innerHTML += MOCK.investments.filter(i => i.status !== "sold").map(i => `<option value="${i.id}">${i.name}</option>`).join("");
+
+  // Tax classification defaults from the source but is set per receipt (SRS §8).
+  const srcSelect = document.getElementById("src-select");
+  const taxClass = document.getElementById("in-taxclass");
+  const syncTaxable = () => document.getElementById("in-taxable-wrap").classList.toggle("hidden", taxClass.value !== "Partially taxable");
+  srcSelect.addEventListener("change", () => { taxClass.value = MOCK.incomeSources[srcSelect.selectedIndex].taxStatus; syncTaxable(); });
+  taxClass.addEventListener("change", syncTaxable);
+  srcSelect.dispatchEvent(new Event("change"));
+  ["in-gross", "in-tax", "in-ded"].forEach(id => document.getElementById(id).addEventListener("input", () => {
+    const v = x => Number(document.getElementById(x).value || 0);
+    const net = document.getElementById("in-net");
+    net.value = document.getElementById("in-gross").value ? (v("in-gross") - v("in-tax") - v("in-ded")).toFixed(2) : "";
+    net.dispatchEvent(new Event("input"));
+  }));
+
+  const totalMonthlyDefault = MOCK.incomeSources.filter(s => s.frequency === "Monthly").reduce((s, src) => s + toBase(src.defaultAmount, src.currency), 0);
+  const octNet = MOCK.incomeTransactions.filter(t => t.date.startsWith("2026-10")).reduce((s, t) => s + toBase(t.net, t.currency), 0);
+  const taxableCount = MOCK.incomeSources.filter(s => s.taxStatus === "Taxable").length;
+
+  App.renderCards(document.getElementById("summary-cards"), [
+    { label: "Active Income Sources", value: MOCK.incomeSources.filter(s => s.active).length },
+    { label: "Recurring Monthly Income (Est.)", value: App.fmtMoney(totalMonthlyDefault) },
+    { label: "Received — October 2026", value: App.fmtMoney(octNet), subTone: "green" },
+    { label: "Taxable Sources", value: taxableCount },
+  ]);
+
+  App.renderTable(document.getElementById("sources-table"), {
+    columns: [
+      { label: "Source", render: s => `<p class="font-medium text-slate-800">${s.name}</p><p class="text-xs text-slate-400">${s.type}</p>` },
+      { label: "Country", render: s => s.country },
+      { label: "Currency", render: s => s.currency },
+      { label: "Frequency", render: s => s.frequency },
+      { label: "Default Amount", cls: "text-right", render: s => App.fmtMoney(s.defaultAmount, s.currency) },
+      { label: "Tax Status", render: s => App.badge(s.taxStatus, s.taxStatus === "Taxable" ? "amber" : s.taxStatus === "Non-taxable" ? "green" : "slate") },
+      { label: "Status", render: s => App.badge(s.active ? "Active" : "Inactive", s.active ? "green" : "slate") },
+      { label: "", cls: "text-right", render: () => App.rowActions("manage_income", "income source") },
+    ],
+    rows: MOCK.incomeSources,
+  });
+
+  document.getElementById("filter-currency").innerHTML += [...new Set(MOCK.incomeTransactions.map(t => t.currency))].map(c => `<option>${c}</option>`).join("");
+  function renderTx() {
+    const f = id => document.getElementById(id).value;
+    App.renderTable(document.getElementById("tx-table"), {
+      columns: [
+        { label: "Date", sort: t => t.date, render: t => App.fmtDate(t.date) },
+        { label: "Source", render: t => MOCK.incomeSources.find(s => s.id === t.sourceId)?.name },
+        { label: "Gross", cls: "text-right", sort: t => toBase(t.gross, t.currency), render: t => App.fmtMoney(t.gross, t.currency) },
+        { label: "Tax", cls: "text-right text-slate-500", sort: t => toBase(t.tax, t.currency), render: t => App.fmtMoney(t.tax, t.currency) },
+        { label: "Other Ded.", cls: "text-right text-slate-500", sort: t => toBase(t.deductions || 0, t.currency), render: t => App.fmtMoney(t.deductions || 0, t.currency) },
+        { label: "Net", cls: "text-right font-medium", sort: t => toBase(t.net, t.currency), render: t => App.fmtMoney(t.net, t.currency) },
+        { label: "Base Equivalent", cls: "text-right text-slate-500", sort: t => t.baseAmount, render: t => App.fmtMoney(t.baseAmount) },
+        { label: "Account", render: t => MOCK.accounts.find(a => a.id === t.account)?.name },
+        { label: "Reference", cls: "text-slate-400", render: t => t.ref },
+        { label: "", cls: "text-right", render: () => App.rowActions("manage_income", "income receipt") },
+      ],
+      rows: MOCK.incomeTransactions
+        .filter(t => (!f("filter-currency") || t.currency === f("filter-currency")) && (!f("filter-from") || t.date >= f("filter-from")) && (!f("filter-to") || t.date <= f("filter-to")))
+        .sort((a, b) => b.date.localeCompare(a.date)),
+    });
+  }
+  renderTx();
+  ["filter-currency", "filter-from", "filter-to"].forEach(id => document.getElementById(id).addEventListener("change", renderTx));
+  App.wireTableSearch(document.getElementById("search"), "#tx-table tbody tr");
+</script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en" data-page="investments">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Investment Types · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-5xl mx-auto">
+
+    <a href="investments.html" class="text-xs text-slate-400 hover:text-slate-600">← Back to Portfolio</a>
+
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-xl font-semibold">Investment Types</h1>
+        <p class="text-sm text-slate-500">The engine behind the app — define a new type here and it's instantly available in <em>+ Add Investment</em>. No developer required.</p>
+      </div>
+      <button data-requires="manage_investment_types" onclick="openTypeModal()" class="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg px-4 py-2.5">+ Add Type</button>
+    </div>
+
+    <div class="bg-teal-50 border border-teal-200 text-teal-800 text-sm rounded-xl p-4">
+      <strong>Spice Route Restaurant</strong> below was created this way — a type the SRS never anticipated by name, built entirely from this screen in August 2026, with zero code changes.
+    </div>
+
+    <div id="types-grid" class="grid sm:grid-cols-2 gap-4"></div>
+  </div>
+</main>
+
+<div id="modal-add-type" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4 overflow-y-auto">
+  <div class="card w-full max-w-2xl p-6 my-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-base font-semibold" id="type-modal-title">New Investment Type</h2>
+      <button onclick="App.closeModal('modal-add-type')" class="text-slate-400">✕</button>
+    </div>
+    <form id="type-form" data-mock-form="Investment type saved — now available in + Add Investment (prototype)." class="space-y-4">
+      <div class="grid sm:grid-cols-2 gap-4">
+        <label class="text-sm">Type Name<input id="t-name" required placeholder="e.g. Agricultural Business" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+        <label class="text-sm">Description<input id="t-desc" placeholder="Short description" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      </div>
+      <div class="grid sm:grid-cols-2 gap-3 text-sm">
+        <label class="flex items-start gap-2 p-3 rounded-lg border border-slate-200"><input type="checkbox" id="t-spec" class="mt-0.5 rounded border-slate-300" />
+          <span>Speculative<span class="block text-xs text-slate-400">Betting-style activity, shown separately from conventional investments.</span></span></label>
+        <label class="flex items-start gap-2 p-3 rounded-lg border border-slate-200"><input type="checkbox" id="t-personal" class="mt-0.5 rounded border-slate-300" />
+          <span>Personal asset<span class="block text-xs text-slate-400">Counted in net worth, kept out of portfolio totals and ROI (e.g. your own home).</span></span></label>
+      </div>
+
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <p class="text-sm font-medium">Custom Fields</p>
+          <button type="button" id="add-field-row" class="text-xs font-medium text-teal-700">+ Add Field</button>
+        </div>
+        <div id="field-rows" class="space-y-2"></div>
+        <p class="text-xs text-slate-400 mt-2">Order here is the order fields appear in + Add Investment. Once any investment has a value for a field, its type is locked; it can still be renamed, reordered or hidden.</p>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
+        <button type="button" onclick="cancelTypeModal()" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Type</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  App.injectShell("investments", "view_investments");
+
+  const usageOf = t => MOCK.investments.filter(i => i.typeId === t.id).length;
+
+  document.getElementById("types-grid").innerHTML = MOCK.investmentTypes.map(t => {
+    const usage = usageOf(t);
+    return `
+    <div class="card p-5">
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <p class="font-semibold text-slate-800">${t.name}</p>
+          <p class="text-xs text-slate-400 mt-0.5">${t.description}</p>
+        </div>
+        <div class="flex gap-1">
+          ${t.speculative ? App.badge("Speculative", "amber") : ""}${t.personal ? App.badge("Personal", "slate") : ""}
+          ${App.badge(t.isSystem ? "System" : "Custom", t.isSystem ? "slate" : "teal")}
+        </div>
+      </div>
+      <div class="mt-4 flex flex-wrap gap-1.5">
+        ${t.fields.length ? t.fields.map(f => `<span class="badge badge-slate">${f.label} · ${f.type}${f.required ? " *" : ""}</span>`).join("") : '<span class="text-xs text-slate-400">Common fields only</span>'}
+      </div>
+      <div class="mt-4 flex items-center justify-between text-xs text-slate-400">
+        <span>${usage} investment${usage === 1 ? "" : "s"} using this type${t.createdBy ? ` · added by ${t.createdBy}` : ""}</span>
+        <span data-requires="manage_investment_types" class="whitespace-nowrap">
+          <button onclick="openTypeModal('${t.id}')" class="font-medium text-teal-700">Edit</button>
+          <button onclick="App.toast('${usage ? "Retired: hidden from + Add Investment; existing investments keep it" : "Retired"} (prototype).')" class="font-medium text-slate-500 ml-2">Retire</button>
+        </span>
+      </div>
+    </div>`;
+  }).join("");
+  App.applyPermissionGating();
+
+  const FIELD_TYPES = ["Text", "Number", "Decimal", "Currency", "Percentage", "Date", "Dropdown", "Checkbox", "Long Text"];
+  function addFieldRow(f = {}, locked = false) {
+    const row = document.createElement("div");
+    row.className = "field-row rounded-lg border border-slate-100 p-2 space-y-2";
+    row.innerHTML = `
+      <div class="flex items-center gap-2">
+        <input placeholder="Field label" value="${f.label || ""}" class="flex-1 min-w-0 border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+        <select class="ftype border border-slate-200 rounded-lg px-2 py-2 text-sm w-32" ${locked ? 'disabled title="Locked: investments already use this field"' : ""}>${FIELD_TYPES.map(ft => `<option ${ft === (f.type || "Text") ? "selected" : ""}>${ft}</option>`).join("")}</select>
+        <input placeholder="Default" value="${f.default ?? ""}" class="w-24 border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+        <label class="flex items-center gap-1 text-xs text-slate-500"><input type="checkbox" ${f.required ? "checked" : ""} class="rounded border-slate-300" /> Req.</label>
+        <button type="button" title="Move up" class="move-up text-slate-400 hover:text-slate-700 px-1">↑</button>
+        <button type="button" title="Move down" class="move-down text-slate-400 hover:text-slate-700 px-1">↓</button>
+        <button type="button" title="${locked ? "Hide" : "Remove"}" class="remove text-slate-400 hover:text-rose-600 px-1">✕</button>
+      </div>
+      <input placeholder="Dropdown options, comma-separated (e.g. Bar, Coin, Jewellery)" value="${(f.options || []).join(", ")}" class="fopts w-full border border-slate-200 rounded-lg px-3 py-2 text-sm ${f.type === "Dropdown" ? "" : "hidden"}" />`;
+    row.querySelector(".ftype").addEventListener("change", e => row.querySelector(".fopts").classList.toggle("hidden", e.target.value !== "Dropdown"));
+    row.querySelector(".move-up").addEventListener("click", () => row.previousElementSibling?.before(row));
+    row.querySelector(".move-down").addEventListener("click", () => row.nextElementSibling?.after(row));
+    row.querySelector(".remove").addEventListener("click", () => row.remove());
+    document.getElementById("field-rows").appendChild(row);
+  }
+  document.getElementById("add-field-row").addEventListener("click", () => addFieldRow());
+
+  function openTypeModal(typeId) {
+    const t = MOCK.investmentTypes.find(x => x.id === typeId);
+    document.getElementById("type-modal-title").textContent = t ? `Edit Investment Type — ${t.name}` : "New Investment Type";
+    document.getElementById("t-name").value = t?.name || "";
+    document.getElementById("t-desc").value = t?.description || "";
+    document.getElementById("t-spec").checked = !!t?.speculative;
+    document.getElementById("t-personal").checked = !!t?.personal;
+    document.getElementById("field-rows").innerHTML = "";
+    if (t) [...t.fields].sort((a, b) => a.order - b.order).forEach(f => addFieldRow(f, usageOf(t) > 0));
+    else { addFieldRow({ label: "Location", type: "Text", required: true }); addFieldRow({ label: "Ownership %", type: "Percentage", required: true }); }
+    App.openModal("modal-add-type");
+  }
+
+  // Reached from the Add Investment wizard's "Create new type": open straight away, and go back after saving (SRS §54).
+  const params = new URLSearchParams(location.search);
+  const returnTo = params.get("return");
+  function cancelTypeModal() {
+    if (returnTo) location.href = returnTo;
+    else App.closeModal("modal-add-type");
+  }
+  if (params.get("new")) openTypeModal();
+  document.getElementById("type-form").addEventListener("submit", () => {
+    if (returnTo) setTimeout(() => (location.href = returnTo), 900);
+  });
+</script>
+</body>
+</html>

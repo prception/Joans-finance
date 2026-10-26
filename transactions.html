@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en" data-page="transactions">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>All Transactions · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+
+    <div>
+      <h1 class="text-xl font-semibold">All Transactions</h1>
+      <p class="text-sm text-slate-500">Every income, expense, investment movement and transfer in one searchable ledger.</p>
+    </div>
+
+    <div class="card">
+      <div class="p-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+        <input id="search" placeholder="Search all transactions..." class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full max-w-xs outline-none focus:ring-2 focus:ring-teal-600/30" />
+        <select id="filter-module" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All types</option></select>
+        <select id="filter-account" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All accounts</option></select>
+        <select id="filter-currency" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All currencies</option></select>
+        <select id="filter-country" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All countries</option></select>
+        <select id="filter-invtype" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All investment types</option></select>
+        <input type="date" id="filter-date-from" class="border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+        <span class="text-xs text-slate-400">to</span>
+        <input type="date" id="filter-date-to" class="border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+        <span class="ml-auto no-print flex gap-3">
+          <button class="text-xs font-medium text-teal-700" onclick="exportCsv()">Export CSV</button>
+          <button class="text-xs font-medium text-teal-700" onclick="App.toast('Exporting as Excel (prototype).')">Export XLSX</button>
+          <button class="text-xs font-medium text-teal-700" onclick="window.print()">Print / PDF</button>
+        </span>
+      </div>
+      <div id="table" class="overflow-x-auto"></div>
+    </div>
+  </div>
+</main>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  App.injectShell("transactions");
+
+  const acc = id => MOCK.accounts.find(a => a.id === id);
+  const typeName = inv => MOCK.investmentTypes.find(t => t.id === inv.typeId).name;
+  // Each row is visible only to roles allowed to see its module.
+  const MODULE_PERM = { Income: "view_income", Expense: "view_expenses", Transfer: "view_accounts", Investment: "view_investments", "Loan Payment": "view_liabilities" };
+
+  const ledger = [
+    ...MOCK.incomeTransactions.map(t => ({ date: t.date, module: "Income", desc: MOCK.incomeSources.find(s => s.id === t.sourceId)?.name, amount: t.net, currency: t.currency, accountId: t.account, country: acc(t.account)?.country })),
+    ...MOCK.expenseTransactions.map(t => ({ date: t.date, module: "Expense", desc: t.desc, amount: -t.amount, currency: t.currency, accountId: t.account, country: acc(t.account)?.country })),
+    ...MOCK.transfers.map(t => ({ date: t.date, module: "Transfer", desc: `${acc(t.from)?.name} → ${acc(t.to)?.name}`, amount: -t.amount, currency: t.currency, accountId: t.from, country: acc(t.from)?.country })),
+    ...Object.entries(MOCK.investmentTransactions).flatMap(([invId, txs]) => {
+      const inv = MOCK.investments.find(i => i.id === invId);
+      return txs.map(t => ({ date: t.date, module: "Investment", desc: `${inv.name} — ${t.type}`, amount: t.amount, currency: t.currency, accountId: inv.account, country: inv.country, invType: typeName(inv) }));
+    }),
+    ...Object.entries(MOCK.liabilityPayments).flatMap(([liabId, pays]) => {
+      const l = MOCK.liabilities.find(x => x.id === liabId);
+      return pays.map(p => ({ date: p.date, module: "Loan Payment", desc: `${l.name} — principal ${App.fmtMoney(p.principal, l.currency)} + interest ${App.fmtMoney(p.interest, l.currency)}`, amount: -(p.principal + p.interest), currency: l.currency, accountId: p.account, country: acc(p.account)?.country }));
+    }),
+  ].filter(r => App.can(MODULE_PERM[r.module]));
+
+  const opts = (id, values, label = v => v) => document.getElementById(id).innerHTML += values.map(v => `<option value="${v}">${label(v)}</option>`).join("");
+  opts("filter-module", Object.keys(MODULE_PERM).filter(m => App.can(MODULE_PERM[m])));
+  opts("filter-account", [...new Set(ledger.map(r => r.accountId).filter(Boolean))], id => acc(id)?.name);
+  opts("filter-currency", [...new Set(ledger.map(r => r.currency))]);
+  opts("filter-country", [...new Set(ledger.map(r => r.country).filter(Boolean))]);
+  opts("filter-invtype", [...new Set(ledger.map(r => r.invType).filter(Boolean))]);
+  if (!App.can("view_investments")) document.getElementById("filter-invtype").classList.add("hidden");
+
+  // Deep links: ?account=<id> from the Accounts page, ?q=<text> from the top-bar search.
+  const params = new URLSearchParams(location.search);
+  if (params.get("account")) document.getElementById("filter-account").value = params.get("account");
+  if (params.get("q")) document.getElementById("search").value = params.get("q");
+
+  let currentRows = [];
+  function render() {
+    const f = id => document.getElementById(id).value;
+    const q = f("search").toLowerCase();
+    currentRows = ledger
+      .filter(r => !f("filter-module") || r.module === f("filter-module"))
+      .filter(r => !f("filter-account") || r.accountId === f("filter-account"))
+      .filter(r => !f("filter-currency") || r.currency === f("filter-currency"))
+      .filter(r => !f("filter-country") || r.country === f("filter-country"))
+      .filter(r => !f("filter-invtype") || r.invType === f("filter-invtype"))
+      .filter(r => !f("filter-date-from") || r.date >= f("filter-date-from"))
+      .filter(r => !f("filter-date-to") || r.date <= f("filter-date-to"))
+      .filter(r => !q || `${r.module} ${r.desc} ${acc(r.accountId)?.name || ""}`.toLowerCase().includes(q))
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    App.renderTable(document.getElementById("table"), {
+      pageSize: 15,
+      columns: [
+        { label: "Date", sort: r => r.date, render: r => App.fmtDate(r.date) },
+        { label: "Type", render: r => App.badge(r.module, { Income: "green", Expense: "red", Transfer: "blue", "Loan Payment": "amber" }[r.module] || "teal") },
+        { label: "Description", render: r => r.desc || "—" },
+        { label: "Account", render: r => acc(r.accountId)?.name || "—" },
+        { label: "Amount", cls: "text-right font-medium", sort: r => toBase(r.amount, r.currency), render: r => `<span class="${r.amount >= 0 ? "text-emerald-600" : "text-rose-600"}">${r.amount >= 0 ? "+" : ""}${App.fmtMoney(r.amount, r.currency)}</span>` },
+        { label: "Base Equivalent", cls: "text-right text-slate-500", sort: r => toBase(r.amount, r.currency), render: r => App.fmtMoney(toBase(r.amount, r.currency)) },
+      ],
+      rows: currentRows,
+      empty: "No transactions match these filters.",
+    });
+  }
+  render();
+  ["filter-module", "filter-account", "filter-currency", "filter-country", "filter-invtype", "filter-date-from", "filter-date-to"].forEach(id => document.getElementById(id).addEventListener("change", render));
+  document.getElementById("search").addEventListener("input", render);
+
+  function exportCsv() {
+    const esc = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const lines = [["Date", "Type", "Description", "Account", "Amount", "Currency", "Base Amount"].join(",")]
+      .concat(currentRows.map(r => [r.date, r.module, r.desc, acc(r.accountId)?.name, r.amount, r.currency, toBase(r.amount, r.currency).toFixed(2)].map(esc).join(",")));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+    a.download = "transactions.csv";
+    a.click();
+  }
+</script>
+</body>
+</html>

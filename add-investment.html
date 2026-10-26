@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en" data-page="investments">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Add Investment · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 max-w-3xl mx-auto space-y-6">
+
+    <a href="investments.html" class="text-xs text-slate-400 hover:text-slate-600">← Cancel and back to Portfolio</a>
+    <div>
+      <h1 class="text-xl font-semibold">Add Investment</h1>
+      <p class="text-sm text-slate-500">Works identically for land, a taxi, crypto, or any custom type you've created.</p>
+    </div>
+
+    <div class="flex items-center gap-2" id="step-indicator"></div>
+
+    <div class="card p-6">
+
+      <div class="wizard-step active" data-step="1">
+        <p class="text-sm font-semibold mb-1">1. Investment Type</p>
+        <p class="text-xs text-slate-400 mb-4">Pick an existing type, or create a new one on the spot.</p>
+        <div id="type-grid" class="grid sm:grid-cols-2 gap-3 max-h-80 overflow-y-auto pr-1"></div>
+        <a href="investment-types.html?new=1&amp;return=add-investment.html" data-requires="manage_investment_types" class="inline-block mt-4 text-xs font-medium text-teal-700">+ Create a brand-new investment type →</a>
+      </div>
+
+      <div class="wizard-step" data-step="2">
+        <p class="text-sm font-semibold mb-4">2. Common Information</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="text-sm col-span-2">Investment Name<input id="f-name" required placeholder="e.g. Chennai Apartment" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+          <label class="text-sm col-span-2">Description<textarea rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></label>
+          <label class="text-sm">Acquisition Date<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+          <label class="text-sm">Location<input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+          <label class="text-sm">Status<select id="f-status" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="active">Active</option><option value="under_construction">Under Construction</option><option value="closed">Closed</option></select></label>
+          <label class="text-sm">Attachments<input type="file" multiple class="mt-1 w-full text-sm text-slate-500" /></label>
+          <label class="text-sm col-span-2">Notes<textarea rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></label>
+        </div>
+        <p id="name-error" class="hidden text-xs text-rose-600 mt-3">Investment Name is required.</p>
+      </div>
+
+      <div class="wizard-step" data-step="3">
+        <p class="text-sm font-semibold mb-1">3. Type-Specific Fields</p>
+        <p class="text-xs text-slate-400 mb-4" id="type-field-hint"></p>
+        <div id="dynamic-fields" class="grid sm:grid-cols-2 gap-4"></div>
+      </div>
+
+      <div class="wizard-step" data-step="4">
+        <p class="text-sm font-semibold mb-4">4. Investment Amount · Country / Currency</p>
+        <form class="grid sm:grid-cols-2 gap-4" onsubmit="return false">
+          <label class="text-sm">Initial Investment<input type="number" step="any" id="f-initial" data-fx="amount" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="0.00" /></label>
+          <label class="text-sm">Additional Capital<input type="number" step="any" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="0.00" /></label>
+          <label class="text-sm">Current Value<input type="number" step="any" id="f-current" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Defaults to amount invested" /></label>
+          <label class="text-sm">Country<select data-options="country" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+          <label class="text-sm">Currency<select data-options="currency" data-fx="currency" id="f-currency" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+          <label class="text-sm"><span data-fx="rate-label">Exchange Rate</span><input type="number" step="any" data-fx="rate" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+          <label class="text-sm">Initial Investment in Base Currency<input readonly data-fx="base" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50" /></label>
+        </form>
+        <p class="text-xs text-slate-400 mt-2">Current Value becomes the first entry in this investment's valuation history.</p>
+        <label class="flex items-start gap-2 mt-4 p-3 rounded-lg border border-slate-200 text-sm">
+          <input type="checkbox" id="f-construction" class="mt-0.5 rounded border-slate-300" />
+          <span>
+            This investment includes a construction / build-out phase
+            <span class="block text-xs text-slate-400 mt-0.5">Adds a Construction Tracker tab after saving, where you set a budget broken into your own line items and log daily costs — works for a property, a restaurant fit-out, or anything else being built.</span>
+          </span>
+        </label>
+      </div>
+
+      <div class="wizard-step" data-step="5">
+        <p class="text-sm font-semibold mb-4">5. Account / Liability</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="text-sm">Funded From Account<select id="f-account" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+          <p class="sm:col-span-2 text-xs text-slate-400">Choose "None — already owned" for something you owned before you started using this app, so no cash movement is posted against an account.</p>
+          <label class="text-sm">Linked Liability (optional)<select id="f-liability" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>— None —</option></select></label>
+        </div>
+      </div>
+
+      <div class="wizard-step" data-step="6">
+        <p class="text-sm font-semibold mb-4">6. Review &amp; Save</p>
+        <div id="review-summary" class="text-sm bg-slate-50 rounded-xl p-4 space-y-1.5"></div>
+        <p class="text-xs text-slate-400 mt-4">After saving, you can immediately add transactions, income/expenses, valuations and documents from the investment's detail page.</p>
+      </div>
+
+      <div class="flex items-center justify-between pt-6 mt-6 border-t border-slate-100">
+        <button id="btn-back" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Back</button>
+        <button id="btn-next" class="px-5 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Next</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  App.injectShell("investments", "manage_investments");
+
+  document.getElementById("f-account").innerHTML = `<option>None — already owned (no cash movement)</option>` + MOCK.accounts.map(a => `<option>${a.name}</option>`).join("");
+  document.getElementById("f-liability").innerHTML += MOCK.liabilities.map(l => `<option>${l.name}</option>`).join("");
+
+  let step = 1;
+  let selectedType = MOCK.investmentTypes[0];
+  const STEPS = [1, 2, 3, 4, 5, 6];
+
+  function renderIndicator() {
+    document.getElementById("step-indicator").innerHTML = STEPS.map(n => `
+      <div class="flex items-center gap-2 ${n < 6 ? "flex-1" : ""}">
+        <div class="step-dot ${n === step ? "active" : n < step ? "done" : ""}">${n < step ? "✓" : n}</div>
+        ${n < 6 ? `<div class="flex-1 h-0.5 ${n < step ? "bg-teal-600" : "bg-slate-200"}"></div>` : ""}
+      </div>`).join("");
+  }
+
+  function renderTypeGrid() {
+    document.getElementById("type-grid").innerHTML = MOCK.investmentTypes.map(t => `
+      <button type="button" data-type-id="${t.id}" class="type-card text-left border rounded-xl p-3 text-sm ${t.id === selectedType.id ? "border-teal-600 bg-teal-50" : "border-slate-200 hover:border-slate-300"}">
+        <p class="font-medium text-slate-800">${t.name}</p>
+        <p class="text-xs text-slate-400 mt-0.5">${t.fields.length} field${t.fields.length === 1 ? "" : "s"} · ${t.isSystem ? "System" : "Custom"}</p>
+      </button>`).join("");
+    document.querySelectorAll(".type-card").forEach(btn => btn.addEventListener("click", () => {
+      selectedType = MOCK.investmentTypes.find(t => t.id === btn.dataset.typeId);
+      renderTypeGrid();
+    }));
+  }
+
+  function renderDynamicFields() {
+    document.getElementById("type-field-hint").textContent = `These fields come from the "${selectedType.name}" type definition — add/remove them any time from Investment Types.`;
+    document.getElementById("dynamic-fields").innerHTML = selectedType.fields.sort((a, b) => a.order - b.order).map(f => {
+      const req = f.required ? "required" : "";
+      let input;
+      if (f.type === "Dropdown") input = `<select ${req} class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm">${(f.options || []).map(o => `<option>${o}</option>`).join("")}</select>`;
+      else if (f.type === "Checkbox") input = `<div class="mt-2"><input type="checkbox" class="rounded border-slate-300" /></div>`;
+      else if (f.type === "Long Text") input = `<textarea ${req} rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea>`;
+      else if (["Number", "Decimal", "Currency", "Percentage"].includes(f.type)) input = `<input type="number" ${req} class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />`;
+      else if (f.type === "Date") input = `<input type="date" ${req} class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />`;
+      else input = `<input type="text" ${req} class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" />`;
+      return `<label class="text-sm">${f.label}${f.required ? ' <span class="text-rose-500">*</span>' : ""}${input}</label>`;
+    }).join("");
+  }
+
+  function renderReview() {
+    document.getElementById("review-summary").innerHTML = `
+      <p><span class="text-slate-400">Type:</span> <strong>${selectedType.name}</strong></p>
+      <p><span class="text-slate-400">Name:</span> <strong>${document.getElementById("f-name").value || "(untitled)"}</strong></p>
+      <p><span class="text-slate-400">Status:</span> <strong>${document.getElementById("f-status").selectedOptions[0].text}</strong></p>
+      <p><span class="text-slate-400">Invested:</span> <strong>${document.getElementById("f-initial").value || "0"} ${document.getElementById("f-currency").value}</strong> · <span class="text-slate-400">Current value:</span> <strong>${document.getElementById("f-current").value || document.getElementById("f-initial").value || "0"} ${document.getElementById("f-currency").value}</strong></p>
+      <p><span class="text-slate-400">Account:</span> <strong>${document.getElementById("f-account").value}</strong></p>
+      <p><span class="text-slate-400">Type-specific fields:</span> <strong>${selectedType.fields.length} field${selectedType.fields.length === 1 ? "" : "s"} captured</strong></p>
+      ${document.getElementById("f-construction").checked ? `<p><span class="text-slate-400">Construction Tracker:</span> <strong>Enabled — set up your budget categories next</strong></p>` : ""}`;
+  }
+
+  function show() {
+    document.querySelectorAll(".wizard-step").forEach(s => s.classList.toggle("active", Number(s.dataset.step) === step));
+    renderIndicator();
+    document.getElementById("btn-back").style.visibility = step === 1 ? "hidden" : "visible";
+    document.getElementById("btn-next").textContent = step === 6 ? "Save Investment" : "Next";
+    if (step === 3) renderDynamicFields();
+    if (step === 6) renderReview();
+  }
+
+  document.getElementById("btn-next").addEventListener("click", () => {
+    if (step === 6) {
+      App.toast("Investment saved (prototype — not persisted). Redirecting...");
+      setTimeout(() => (location.href = "investments.html"), 900);
+      return;
+    }
+    if (step === 2 && !document.getElementById("f-name").value.trim()) {
+      document.getElementById("name-error").classList.remove("hidden");
+      return;
+    }
+    document.getElementById("name-error").classList.add("hidden");
+    step++;
+    show();
+  });
+  document.getElementById("btn-back").addEventListener("click", () => { if (step > 1) { step--; show(); } });
+
+  renderTypeGrid();
+  show();
+</script>
+</body>
+</html>

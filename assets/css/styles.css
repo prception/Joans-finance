@@ -1,0 +1,96 @@
+:root {
+  --accent: #0f766e;
+  --accent-light: #ccfbf1;
+}
+
+body {
+  background: #f8fafc;
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+.sidebar-link.active {
+  background: var(--accent-light);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sidebar-link.active svg { color: var(--accent); }
+
+.card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badge-green { background: #dcfce7; color: #166534; }
+.badge-red { background: #fee2e2; color: #991b1b; }
+.badge-amber { background: #fef3c7; color: #92400e; }
+.badge-slate { background: #f1f5f9; color: #334155; }
+.badge-teal { background: #ccfbf1; color: #0f766e; }
+.badge-blue { background: #dbeafe; color: #1e40af; }
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  background: #f8fafc;
+}
+
+.data-table tbody tr:hover { background: #f8fafc; }
+
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 60;
+  transform: translateY(1rem);
+  opacity: 0;
+  transition: all 0.25s ease;
+  pointer-events: none;
+}
+
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.modal-backdrop {
+  backdrop-filter: blur(2px);
+}
+
+.wizard-step { display: none; }
+.wizard-step.active { display: block; }
+
+.step-dot {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #64748b;
+}
+
+.step-dot.active { background: var(--accent); color: #fff; }
+.step-dot.done { background: var(--accent-light); color: var(--accent); }
+
+@media print {
+  #sidebar-root, #topbar-root, .no-print { display: none !important; }
+  #page { padding-left: 0 !important; padding-top: 0 !important; }
+}

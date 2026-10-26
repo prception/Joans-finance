@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en" data-page="reports">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Reports · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-6xl mx-auto">
+
+    <div>
+      <h1 class="text-xl font-semibold">Reports</h1>
+      <p class="text-sm text-slate-500">Financial and investment reports, any period, exportable as PDF, Excel or CSV.</p>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-4">
+      <div class="card p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Financial Reports</p>
+        <div class="space-y-1" id="list-financial"></div>
+      </div>
+      <div class="card p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Investment Reports</p>
+        <div class="space-y-1" id="list-investment"></div>
+      </div>
+      <div class="card p-5">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Period</p>
+        <div class="space-y-2 text-sm">
+          <label class="flex items-center gap-2"><input type="radio" name="period" checked /> Monthly</label>
+          <label class="flex items-center gap-2"><input type="radio" name="period" /> Quarterly</label>
+          <label class="flex items-center gap-2"><input type="radio" name="period" /> Annual</label>
+          <label class="flex items-center gap-2"><input type="radio" name="period" /> Custom range</label>
+          <div class="flex items-center gap-2 pl-5">
+            <input type="date" class="border border-slate-200 rounded-lg px-2 py-1 text-xs w-full" />
+            <span class="text-xs text-slate-400">to</span>
+            <input type="date" class="border border-slate-200 rounded-lg px-2 py-1 text-xs w-full" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div>
+          <p class="text-sm font-semibold" id="active-report-title">Income Report — October 2026</p>
+          <p class="text-xs text-slate-400">Showing a preview. Switch reports from the lists above.</p>
+        </div>
+        <div class="flex gap-2 no-print">
+          <button onclick="App.toast('Exporting as PDF (prototype).')" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200">Export PDF</button>
+          <button onclick="App.toast('Exporting as Excel (prototype).')" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200">Export XLSX</button>
+          <button onclick="App.toast('Exporting as CSV (prototype).')" class="px-3 py-1.5 text-xs font-medium rounded-lg border border-slate-200">Export CSV</button>
+        </div>
+      </div>
+      <div id="report-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6"></div>
+      <div class="h-64"><canvas id="report-chart"></canvas></div>
+    </div>
+  </div>
+</main>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/charts.js"></script>
+<script>
+  App.injectShell("reports");
+
+  // A report is listed only if the role can see every module it draws on.
+  const allowed = ([, perms]) => perms.every(p => App.can(p));
+  const financialReports = [
+    ["Income Report", ["view_income"]], ["Expense Report", ["view_expenses"]], ["Cash-Flow Report", ["view_accounts"]],
+    ["Net-Worth Report", ["view_accounts", "view_investments", "view_liabilities"]], ["Asset Report", ["view_accounts", "view_investments"]], ["Liability Report", ["view_liabilities"]],
+  ].filter(allowed).map(([n]) => n);
+  const investmentReports = App.can("view_investments")
+    ? ["Portfolio Report", "Investment P/L", "Investment Income", "Investment Expenses", "ROI Report", "Country-wise Investment", "Currency-wise Investment", "Investment-Type Report"]
+    : [];
+  if (!investmentReports.length) document.getElementById("list-investment").parentElement.classList.add("hidden");
+
+  function reportList(id, names) {
+    document.getElementById(id).innerHTML = names.map((n, i) => `<button data-report="${n}" class="report-btn w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-slate-100 ${i === 0 && id === "list-financial" ? "bg-teal-50 text-teal-700 font-medium" : "text-slate-600"}">${n}</button>`).join("");
+  }
+  reportList("list-financial", financialReports);
+  reportList("list-investment", investmentReports);
+
+  let chart;
+  function showReport(name) {
+    document.getElementById("active-report-title").textContent = `${name} — October 2026`;
+    document.querySelectorAll(".report-btn").forEach(b => {
+      const active = b.dataset.report === name;
+      b.classList.toggle("bg-teal-50", active);
+      b.classList.toggle("text-teal-700", active);
+      b.classList.toggle("font-medium", active);
+      b.classList.toggle("text-slate-600", !active);
+    });
+
+    App.renderCards(document.getElementById("report-cards"), [
+      { label: "Total Income", value: App.fmtMoney(45900) },
+      { label: "Total Expenses", value: App.fmtMoney(30200) },
+      { label: "Net Cash Flow", value: App.fmtMoney(15700), subTone: "green" },
+      { label: "Savings Rate", value: "34%" },
+    ]);
+
+    if (chart) chart.destroy();
+    chart = Charts.bar(document.getElementById("report-chart"),
+      ["May", "Jun", "Jul", "Aug", "Sep", "Oct"],
+      [{ label: name, data: [38000, 39500, 41200, 42800, 44100, 45900] }]);
+  }
+
+  document.addEventListener("click", e => {
+    if (e.target.matches(".report-btn")) showReport(e.target.dataset.report);
+  });
+  showReport(financialReports[0] || investmentReports[0]);
+</script>
+</body>
+</html>

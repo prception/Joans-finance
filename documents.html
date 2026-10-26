@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en" data-page="documents">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Documents · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-6xl mx-auto">
+
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-xl font-semibold">Documents</h1>
+        <p class="text-sm text-slate-500">Sale deeds, registrations, agreements and statements — attached to the records they belong to.</p>
+      </div>
+      <button data-requires="manage_documents" onclick="App.openModal('modal-upload')" class="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg px-4 py-2.5">+ Upload Document</button>
+    </div>
+
+    <div class="card">
+      <div class="p-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+        <input id="search" placeholder="Search documents..." class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full max-w-xs outline-none focus:ring-2 focus:ring-teal-600/30" />
+        <select id="filter-type" class="border border-slate-200 rounded-lg px-3 py-2 text-sm">
+          <option value="">All types</option>
+          <option>Land</option><option>Property</option><option>Vehicle</option><option>Business</option><option>Loan</option>
+        </select>
+      </div>
+      <div id="table" class="overflow-x-auto"></div>
+    </div>
+  </div>
+</main>
+
+<div id="modal-upload" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Upload Document</h2><button onclick="App.closeModal('modal-upload')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Document uploaded (prototype)." class="space-y-4">
+      <label class="block border-2 border-dashed border-slate-200 rounded-xl p-6 text-center text-xs text-slate-400 cursor-pointer">
+        <input type="file" required accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx" class="block mx-auto text-sm text-slate-500" />
+        <span class="block mt-2">PDF, JPG, PNG, DOCX, XLSX up to 15MB</span>
+      </label>
+      <label class="text-sm block">Document Type<select id="kind-select" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm block">Link to Record
+        <select id="link-select" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select>
+      </label>
+      <label class="text-sm block">Description<input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-upload')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Upload</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  App.injectShell("documents");
+  document.getElementById("kind-select").innerHTML = DOC_KINDS.map(k => `<option>${k}</option>`).join("");
+  // Documents attach to any record: investments, loans, accounts, income receipts, expenses (SRS §9/§11/§44).
+  const group = (label, items) => `<optgroup label="${label}">${items.map(t => `<option>${t}</option>`).join("")}</optgroup>`;
+  document.getElementById("link-select").innerHTML =
+    group("Investments", MOCK.investments.map(i => i.name)) +
+    group("Liabilities", MOCK.liabilities.map(l => l.name)) +
+    group("Accounts", MOCK.accounts.map(a => a.name)) +
+    group("Income receipts", MOCK.incomeTransactions.map(t => `${MOCK.incomeSources.find(s => s.id === t.sourceId)?.name} · ${t.date}`)) +
+    group("Expenses", MOCK.expenseTransactions.map(t => `${t.desc} · ${t.date}`));
+
+  function render() {
+    const type = document.getElementById("filter-type").value;
+    const rows = MOCK.documents.filter(d => !type || d.type === type);
+    App.renderTable(document.getElementById("table"), {
+      columns: [
+        { label: "Document", render: d => `<p class="font-medium text-slate-800">${d.name}</p>` },
+        { label: "Linked Record", render: d => d.linkedTo },
+        { label: "Type", render: d => App.badge(d.type, "slate") },
+        { label: "Size", render: d => d.size },
+        { label: "Uploaded", sort: d => d.uploaded, render: d => App.fmtDate(d.uploaded) },
+        { label: "", cls: "text-right whitespace-nowrap", render: () => `<a href="#" class="text-teal-700 text-xs font-medium mr-2">Download</a>` + App.rowActions("manage_documents", "document") },
+      ],
+      rows,
+    });
+    App.wireTableSearch(document.getElementById("search"), "#table tbody tr");
+  }
+  render();
+  document.getElementById("filter-type").addEventListener("change", render);
+</script>
+</body>
+</html>

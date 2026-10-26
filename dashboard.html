@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="en" data-page="dashboard">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-8 max-w-7xl mx-auto">
+
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-xl font-semibold">Welcome back, Vishnu</h1>
+        <p class="text-sm text-slate-500">Here's where things stand across every account, investment and liability.</p>
+      </div>
+      <a href="add-investment.html" data-requires="manage_investments" class="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg px-4 py-2.5">
+        <span>+ Add Investment</span>
+      </a>
+    </div>
+
+    <section>
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Financial Summary</h2>
+      <div id="financial-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+    </section>
+
+    <section data-requires="view_investments">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">Investment Summary</h2>
+      <div id="investment-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+    </section>
+
+    <section data-requires="view_investments">
+      <h2 class="text-xs font-semibold uppercase tracking-wide text-amber-600 mb-3">Speculative Activity — kept out of investment totals</h2>
+      <div id="speculative-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+    </section>
+
+    <section id="networth-row" class="grid lg:grid-cols-3 gap-4">
+      <div class="card p-5 lg:col-span-2">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <p class="text-sm font-semibold">Net Worth History</p>
+            <p class="text-xs text-slate-400">Last 6 months, base currency (AED)</p>
+          </div>
+        </div>
+        <div class="h-64"><canvas id="chart-networth"></canvas></div>
+      </div>
+      <div class="card p-5">
+        <p class="text-sm font-semibold mb-4">Assets by Type</p>
+        <div class="h-64"><canvas id="chart-assets"></canvas></div>
+      </div>
+    </section>
+
+    <section class="grid lg:grid-cols-3 gap-4">
+      <div class="card p-5 lg:col-span-2">
+        <p class="text-sm font-semibold mb-4">Income vs Expenses</p>
+        <div class="h-60"><canvas id="chart-income-expense"></canvas></div>
+      </div>
+      <div class="card p-5" data-requires="view_investments">
+        <p class="text-sm font-semibold mb-4">Investments by Country</p>
+        <div class="h-60"><canvas id="chart-country"></canvas></div>
+      </div>
+    </section>
+
+    <section class="grid lg:grid-cols-3 gap-4">
+      <div class="card p-5" data-requires="view_investments">
+        <p class="text-sm font-semibold mb-4">Investments by Currency</p>
+        <div class="h-60"><canvas id="chart-currency"></canvas></div>
+      </div>
+      <div class="card p-5" data-requires="view_liabilities">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm font-semibold">Liabilities Overview</p>
+          <a href="liabilities.html" class="text-xs text-teal-700 font-medium">View all →</a>
+        </div>
+        <div id="liabilities-mini" class="space-y-3"></div>
+      </div>
+      <div class="card p-5" data-requires="view_recurring">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm font-semibold">Upcoming Reminders</p>
+          <a href="reminders.html" class="text-xs text-teal-700 font-medium">View all →</a>
+        </div>
+        <div id="reminders-mini" class="space-y-3"></div>
+      </div>
+    </section>
+
+    <section class="grid lg:grid-cols-2 gap-4">
+      <div class="card p-5" data-requires="view_accounts">
+        <p class="text-sm font-semibold">Cash Flow</p>
+        <p class="text-xs text-slate-400 mb-4">Money in vs. out of your accounts — transfers excluded, valuations never included</p>
+        <div class="h-60"><canvas id="chart-cashflow"></canvas></div>
+      </div>
+      <div class="card p-5" data-requires="view_investments">
+        <p class="text-sm font-semibold">Investment Performance</p>
+        <p class="text-xs text-slate-400 mb-4">Invested vs. current value per held investment (base currency)</p>
+        <div class="h-60"><canvas id="chart-performance"></canvas></div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script src="assets/js/charts.js"></script>
+<script>
+  App.injectShell("dashboard");
+
+  const held = MOCK.investments.filter(i => i.status !== "sold");
+  const conventional = held.filter(i => !isSpeculative(i) && !isPersonal(i));
+  // Net worth needs both sides of the balance sheet; roles without them see only cash/income/expenses.
+  const seeNetWorth = App.can("view_investments") && App.can("view_liabilities");
+  const speculative = held.filter(isSpeculative);
+  const sum = (list, fn) => list.reduce((s, i) => s + toBase(fn(i), i.currency), 0);
+
+  const totalAccounts = MOCK.accounts.reduce((s, a) => s + toBase(a.balance, a.currency), 0);
+  const totalCash = MOCK.accounts.filter(a => a.type === "Cash").reduce((s, a) => s + toBase(a.balance, a.currency), 0);
+  const totalHeldValue = sum(held, i => i.currentValue);
+  const totalInvestmentValue = sum(conventional, i => i.currentValue);
+  const totalInvested = sum(conventional, i => i.initial + i.additional);
+  const totalLiabilities = MOCK.liabilities.reduce((s, l) => s + toBase(l.outstanding, l.currency), 0);
+  const totalAssets = totalAccounts + totalHeldValue;
+  const netWorth = totalAssets - totalLiabilities;
+  const unrealizedPL = totalInvestmentValue - totalInvested;
+  const realizedPL = sum(MOCK.investments.filter(i => i.status === "sold"), gainOf);
+
+  const thisMonthIncome = MOCK.incomeTransactions.filter(t => t.date.startsWith("2026-10")).reduce((s, t) => s + toBase(t.net, t.currency), 0);
+  const thisMonthExpense = MOCK.expenseTransactions.filter(t => t.date.startsWith("2026-10")).reduce((s, t) => s + toBase(t.amount, t.currency), 0);
+  const invIncomeBase = 14200; // Taxi fares, AED, Oct
+  const invExpenseBase = MOCK.expenseTransactions.filter(t => t.linkedInvestment && t.date.startsWith("2026-10")).reduce((s, t) => s + toBase(t.amount, t.currency), 0);
+
+  App.renderCards(document.getElementById("financial-cards"), [
+    ...(seeNetWorth ? [
+      { label: "Net Worth", value: App.fmtMoney(netWorth) },
+      { label: "Total Assets", value: App.fmtMoney(totalAssets) },
+      { label: "Total Liabilities", value: App.fmtMoney(totalLiabilities), subTone: "red" },
+    ] : []),
+    { label: "Cash", value: App.fmtMoney(totalCash), sub: "Cash-in-hand accounts" },
+    { label: "Bank Balances", value: App.fmtMoney(totalAccounts - totalCash), sub: "Banks, deposits, trading & wallets" },
+    { label: "Monthly Income", value: App.fmtMoney(thisMonthIncome), sub: "October 2026", subTone: "green" },
+    { label: "Monthly Expenses", value: App.fmtMoney(thisMonthExpense), sub: "October 2026", subTone: "red" },
+  ]);
+
+  App.renderCards(document.getElementById("investment-cards"), [
+    { label: "Total Invested", value: App.fmtMoney(totalInvested) },
+    { label: "Current Investment Value", value: App.fmtMoney(totalInvestmentValue) },
+    { label: "Unrealized P/L", value: App.fmtMoney(unrealizedPL), subTone: unrealizedPL >= 0 ? "green" : "red" },
+    { label: "Realized P/L (YTD)", value: App.fmtMoney(realizedPL), sub: "From sold / closed investments", subTone: realizedPL >= 0 ? "green" : "red" },
+    { label: "Investment Income (Oct)", value: App.fmtMoney(invIncomeBase), subTone: "green" },
+    { label: "Investment Expenses (Oct)", value: App.fmtMoney(invExpenseBase), subTone: "red" },
+  ]);
+
+  const specStaked = sum(speculative, i => i.initial + i.additional);
+  const specNet = sum(speculative, gainOf);
+  App.renderCards(document.getElementById("speculative-cards"), [
+    { label: "Deposited / Staked", value: App.fmtMoney(specStaked) },
+    { label: "Current Balance", value: App.fmtMoney(sum(speculative, i => i.currentValue)) },
+    { label: "Net Result", value: App.fmtMoney(specNet), sub: "Betting & speculative platforms", subTone: specNet >= 0 ? "green" : "red" },
+  ]);
+
+  if (!seeNetWorth) document.getElementById("networth-row").classList.add("hidden");
+  Charts.line(document.getElementById("chart-networth"), MOCK.netWorthHistory.map(n => n.month), MOCK.netWorthHistory.map(n => n.value));
+
+  const byType = {};
+  held.forEach(i => {
+    const t = MOCK.investmentTypes.find(x => x.id === i.typeId).name;
+    byType[t] = (byType[t] || 0) + toBase(i.currentValue, i.currency);
+  });
+  byType["Cash & Bank"] = totalAccounts;
+  Charts.donut(document.getElementById("chart-assets"), Object.keys(byType), Object.values(byType).map(v => Math.round(v)));
+
+  const byCountry = {};
+  const byCurrency = {};
+  conventional.forEach(i => {
+    const c = i.country === "—" ? "Other" : i.country;
+    byCountry[c] = (byCountry[c] || 0) + toBase(i.currentValue, i.currency);
+    byCurrency[i.currency] = (byCurrency[i.currency] || 0) + toBase(i.currentValue, i.currency);
+  });
+  Charts.donut(document.getElementById("chart-country"), Object.keys(byCountry), Object.values(byCountry).map(v => Math.round(v)));
+  Charts.donut(document.getElementById("chart-currency"), Object.keys(byCurrency), Object.values(byCurrency).map(v => Math.round(v)));
+
+  const months = ["May", "Jun", "Jul", "Aug", "Sep", "Oct"];
+  const incomeSeries = [38000, 39500, 41200, 42800, 44100, 45900];
+  const expenseSeries = [26000, 27500, 25800, 29100, 28400, 30200];
+  Charts.bar(document.getElementById("chart-income-expense"), months, [
+    { label: "Income", data: incomeSeries, color: "#0f766e" },
+    { label: "Expenses", data: expenseSeries, color: "#dc2626" },
+  ]);
+
+  Charts.bar(document.getElementById("chart-cashflow"), months, [
+    { label: "Inflow", data: incomeSeries, color: "#0f766e" },
+    { label: "Outflow", data: expenseSeries, color: "#dc2626" },
+    { label: "Net", data: incomeSeries.map((v, i) => v - expenseSeries[i]), color: "#2563eb" },
+  ]);
+
+  const perf = conventional.map(i => ({ name: i.name.split(" — ")[0], invested: toBase(i.initial + i.additional, i.currency), current: toBase(i.currentValue, i.currency) }));
+  Charts.bar(document.getElementById("chart-performance"), perf.map(p => p.name), [
+    { label: "Invested", data: perf.map(p => Math.round(p.invested)), color: "#94a3b8" },
+    { label: "Current Value", data: perf.map(p => Math.round(p.current)), color: "#0f766e" },
+  ]);
+
+  const liabHtml = MOCK.liabilities.slice(0, 4).map(l => `
+    <div class="flex items-center justify-between text-sm">
+      <div>
+        <p class="font-medium text-slate-800">${l.name}</p>
+        <p class="text-xs text-slate-400">${l.type}</p>
+      </div>
+      <p class="font-semibold text-rose-600">${App.fmtMoney(l.outstanding, l.currency)}</p>
+    </div>`).join("");
+  document.getElementById("liabilities-mini").innerHTML = liabHtml;
+
+  const remHtml = MOCK.reminders.slice(0, 4).map(r => `
+    <div class="flex items-center justify-between text-sm">
+      <div>
+        <p class="font-medium text-slate-800">${r.title}</p>
+        <p class="text-xs text-slate-400">${r.category} · ${App.fmtDate(r.due)}</p>
+      </div>
+      ${App.badge(r.status === "due-soon" ? "Due soon" : r.status === "upcoming" ? "Upcoming" : "Scheduled", r.status === "due-soon" ? "amber" : "slate")}
+    </div>`).join("");
+  document.getElementById("reminders-mini").innerHTML = remHtml;
+</script>
+</body>
+</html>

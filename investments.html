@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en" data-page="investments">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Investments · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-xl font-semibold">Investment Portfolio</h1>
+        <p class="text-sm text-slate-500">Every investment, regardless of type — land, crypto, a taxi, or something you invent tomorrow.</p>
+      </div>
+      <div class="flex gap-2">
+        <a href="investment-types.html" data-requires="manage_investment_types" class="inline-flex items-center gap-2 bg-white border border-slate-200 text-slate-700 text-sm font-medium rounded-lg px-4 py-2.5">Manage Types</a>
+        <a href="add-investment.html" data-requires="manage_investments" class="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg px-4 py-2.5">+ Add Investment</a>
+      </div>
+    </div>
+
+    <div id="summary-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+    <div class="card">
+      <div class="p-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+        <input id="search" placeholder="Search investments..." class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full max-w-xs outline-none focus:ring-2 focus:ring-teal-600/30" />
+        <select id="filter-type" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All types</option></select>
+        <select id="filter-country" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All countries</option></select>
+        <select id="filter-currency" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All currencies</option></select>
+        <select id="filter-status" class="border border-slate-200 rounded-lg px-3 py-2 text-sm">
+          <option value="">Any status</option>
+          <option value="active">Active</option>
+          <option value="under_construction">Under Construction</option>
+          <option value="sold">Sold</option>
+        </select>
+        <select id="filter-performance" class="border border-slate-200 rounded-lg px-3 py-2 text-sm">
+          <option value="">Any performance</option>
+          <option value="gain">Gaining</option>
+          <option value="loss">Losing</option>
+        </select>
+        <span class="text-xs text-slate-400">Acquired</span>
+        <input type="date" id="filter-from" class="border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+        <span class="text-xs text-slate-400">to</span>
+        <input type="date" id="filter-to" class="border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+      </div>
+      <p class="px-4 pt-3 text-xs text-slate-400">ROI = capital gain ÷ invested (SRS §52). Total Return also counts net operating income (rent, fares, dividends minus operating expenses).</p>
+      <div id="table" class="overflow-x-auto"></div>
+    </div>
+  </div>
+</main>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  App.injectShell("investments");
+
+  const types = [...new Set(MOCK.investments.map(i => MOCK.investmentTypes.find(t => t.id === i.typeId).name))];
+  const countries = [...new Set(MOCK.investments.map(i => i.country))];
+  const currencies = [...new Set(MOCK.investments.map(i => i.currency))];
+  document.getElementById("filter-type").innerHTML += types.map(t => `<option>${t}</option>`).join("");
+  document.getElementById("filter-country").innerHTML += countries.map(c => `<option>${c}</option>`).join("");
+  document.getElementById("filter-currency").innerHTML += currencies.map(c => `<option>${c}</option>`).join("");
+
+  const held = MOCK.investments.filter(i => i.status !== "sold" && !isSpeculative(i) && !isPersonal(i));
+  const totalInvested = held.reduce((s, i) => s + toBase(i.initial + i.additional, i.currency), 0);
+  const totalCurrent = held.reduce((s, i) => s + toBase(i.currentValue, i.currency), 0);
+  const totalGain = totalCurrent - totalInvested;
+  const roi = (totalGain / totalInvested) * 100;
+
+  App.renderCards(document.getElementById("summary-cards"), [
+    { label: "Total Invested", value: App.fmtMoney(totalInvested), sub: "Held positions · excludes sold, speculative & personal assets" },
+    { label: "Current Value", value: App.fmtMoney(totalCurrent) },
+    { label: "Unrealized Gain/Loss", value: App.fmtMoney(totalGain), subTone: totalGain >= 0 ? "green" : "red" },
+    { label: "Overall ROI", value: roi.toFixed(1) + "%", subTone: roi >= 0 ? "green" : "red" },
+  ]);
+
+  function matches(i, f) {
+    const typeName = MOCK.investmentTypes.find(t => t.id === i.typeId).name;
+    const gain = gainOf(i);
+    if (f.type && typeName !== f.type) return false;
+    if (f.country && i.country !== f.country) return false;
+    if (f.currency && i.currency !== f.currency) return false;
+    if (f.status && i.status !== f.status) return false;
+    if (f.perf === "gain" && gain < 0) return false;
+    if (f.perf === "loss" && gain >= 0) return false;
+    if (f.from && i.acquired < f.from) return false;
+    if (f.to && i.acquired > f.to) return false;
+    return true;
+  }
+
+  function renderInvestments() {
+    const f = {
+      type: document.getElementById("filter-type").value,
+      country: document.getElementById("filter-country").value,
+      currency: document.getElementById("filter-currency").value,
+      status: document.getElementById("filter-status").value,
+      perf: document.getElementById("filter-performance").value,
+      from: document.getElementById("filter-from").value,
+      to: document.getElementById("filter-to").value,
+    };
+    const rows = MOCK.investments.filter(i => matches(i, f));
+    App.renderTable(document.getElementById("table"), {
+      columns: [
+        { label: "Investment", render: i => `<a href="investment-detail.html?id=${i.id}" class="font-medium text-slate-800 hover:text-teal-700">${i.name}</a>${isSpeculative(i) ? " " + App.badge("Speculative", "amber") : ""}${isPersonal(i) ? " " + App.badge("Personal", "slate") : ""}<p class="text-xs text-slate-400">${MOCK.investmentTypes.find(t => t.id === i.typeId).name} · ${i.country}</p>` },
+        { label: "Invested", cls: "text-right", sort: i => toBase(i.initial + i.additional, i.currency), render: i => App.fmtMoney(i.initial + i.additional, i.currency) },
+        { label: "Current Value", cls: "text-right font-medium", sort: i => toBase(i.status === "sold" ? i.saleProceeds : i.currentValue, i.currency), render: i => i.status === "sold"
+            ? `${App.fmtMoney(i.saleProceeds, i.currency)}<p class="text-[11px] font-normal text-slate-400">sold ${App.fmtDate(i.soldOn)}</p>`
+            : App.fmtMoney(i.currentValue, i.currency) },
+        { label: "Gain/Loss", cls: "text-right", sort: i => toBase(gainOf(i), i.currency), render: i => `${App.gainBadge(toBase(gainOf(i), i.currency))}<p class="text-[11px] text-slate-400">${i.status === "sold" ? "realized" : "unrealized"}</p>` },
+        { label: "ROI", cls: "text-right", sort: i => isPersonal(i) ? -Infinity : gainOf(i) / (i.initial + i.additional), render: i => {
+            if (isPersonal(i)) return '<span class="text-slate-400">—</span>';
+            const roi = (gainOf(i) / (i.initial + i.additional)) * 100;
+            return `<span class="${roi >= 0 ? 'text-emerald-600' : 'text-rose-600'} font-medium">${roi.toFixed(1)}%</span>`;
+          } },
+        { label: "Total Return", cls: "text-right", sort: i => isPersonal(i) ? -Infinity : totalReturnPct(i), render: i => {
+            if (isPersonal(i)) return '<span class="text-slate-400">—</span>';
+            const tr = totalReturnPct(i);
+            return `<span class="${tr >= 0 ? 'text-emerald-600' : 'text-rose-600'} font-medium" title="(capital gain + net operating income) ÷ invested">${tr.toFixed(1)}%</span>`;
+          } },
+        { label: "Status", render: i => {
+            const tone = { active: "green", under_construction: "amber", sold: "slate", closed: "slate" }[i.status] || "slate";
+            const label = i.status === "under_construction" ? "Under Construction" : i.status[0].toUpperCase() + i.status.slice(1);
+            return App.badge(label, tone);
+          } },
+      ],
+      rows,
+    });
+    App.wireTableSearch(document.getElementById("search"), "#table tbody tr");
+  }
+  renderInvestments();
+  ["filter-type", "filter-country", "filter-currency", "filter-status", "filter-performance", "filter-from", "filter-to"].forEach(id =>
+    document.getElementById(id).addEventListener("change", renderInvestments)
+  );
+</script>
+</body>
+</html>

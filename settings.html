@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en" data-page="settings">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Settings · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-5xl mx-auto">
+
+    <div>
+      <h1 class="text-xl font-semibold">Settings</h1>
+      <p class="text-sm text-slate-500">Profile, base currency, investment types, and — for the admin — user access.</p>
+    </div>
+
+    <div id="tabs" class="inline-flex bg-slate-100 rounded-lg p-1 text-sm flex-wrap">
+      <button data-tab="profile" class="px-4 py-1.5 rounded-md font-medium bg-white shadow-sm text-slate-900">Profile &amp; Preferences</button>
+      <button data-tab="users" data-requires="manage_users" class="px-4 py-1.5 rounded-md font-medium text-slate-500">Users &amp; Roles</button>
+      <button data-tab="audit" data-requires="view_audit_log" class="px-4 py-1.5 rounded-md font-medium text-slate-500">Audit Log</button>
+      <button data-tab="archive" data-requires="restore_records" class="px-4 py-1.5 rounded-md font-medium text-slate-500">Archive</button>
+      <button data-tab="backup" data-requires="manage_backups" class="px-4 py-1.5 rounded-md font-medium text-slate-500">Backup &amp; Restore</button>
+    </div>
+
+    <!-- Profile -->
+    <div data-tab-panel="profile" class="space-y-4">
+      <div class="card p-6">
+        <p class="text-sm font-semibold mb-4">Profile</p>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <label class="text-sm">Full Name<input value="Vishnu Viswanath" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+          <label class="text-sm">Email<input value="vishnu.viswanath.mm@gmail.com" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+        </div>
+      </div>
+      <div class="card p-6">
+        <p class="text-sm font-semibold mb-1">Base Currency</p>
+        <p class="text-xs text-slate-400 mb-4">Every foreign-currency figure is shown converted to this currency across the app. Original currency is always kept.</p>
+        <select class="w-full sm:w-64 border border-slate-200 rounded-lg px-3 py-2 text-sm">
+          <option selected>AED — UAE Dirham</option>
+          <option>INR — Indian Rupee</option>
+          <option>USD — US Dollar</option>
+        </select>
+      </div>
+      <div class="card p-6">
+        <p class="text-sm font-semibold mb-1">Exchange Rates</p>
+        <p class="text-xs text-slate-400 mb-4">Entered manually. There's no rate API. A new rate applies only to transactions recorded after it. Past transactions keep the rate they were saved with.</p>
+        <form data-mock-form="Exchange rates saved — existing transactions unchanged (prototype)." class="space-y-3">
+          <div id="fx-rows" class="space-y-2"></div>
+          <div class="flex items-center gap-4">
+            <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Rates</button>
+            <span class="text-xs text-slate-400">Last updated 2026-10-01 by Vishnu Viswanath</span>
+          </div>
+        </form>
+      </div>
+      <div class="card p-6">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-sm font-semibold">Investment Types</p>
+            <p class="text-xs text-slate-400 mt-1">Manage the generic investment engine — create, edit or retire types and their custom fields.</p>
+          </div>
+          <a href="investment-types.html" data-requires="manage_investment_types" class="px-4 py-2 text-sm rounded-lg border border-slate-200 font-medium">Manage →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Users & Roles -->
+    <div data-tab-panel="users" class="space-y-4 hidden">
+      <div class="bg-teal-50 border border-teal-200 text-teal-800 text-sm rounded-xl p-4">
+        This is the one area the SRS leaves for a future "multi-user" version — built in from day one here. The data still belongs to a single wealth owner; these are <strong>permissioned collaborators</strong>, not separate owners.
+      </div>
+
+      <div class="card">
+        <div class="p-4 border-b border-slate-100 flex items-center justify-between">
+          <p class="text-sm font-semibold">Team</p>
+          <button onclick="App.openModal('modal-invite')" class="text-xs font-medium text-teal-700">+ Invite User</button>
+        </div>
+        <div id="users-table" class="overflow-x-auto"></div>
+      </div>
+
+      <div class="card p-5">
+        <div class="flex items-center justify-between mb-1">
+          <p class="text-sm font-semibold">Roles &amp; Module Permissions</p>
+          <button onclick="App.toast('New role added as a column. Tick its permissions and save (prototype).')" class="text-xs font-medium text-teal-700">+ New Role</button>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">Permission checks reuse Django's built-in auth groups/permissions — no custom access-control engine. Admin always has every permission.</p>
+        <form data-mock-form="Role permissions saved (prototype).">
+          <div id="permission-matrix" class="overflow-x-auto"></div>
+          <div class="flex justify-end pt-4"><button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Permissions</button></div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Audit -->
+    <div data-tab-panel="audit" class="card hidden">
+      <div class="p-4 border-b border-slate-100"><p class="text-sm font-semibold">Audit Trail</p></div>
+      <div id="audit-table" class="overflow-x-auto"></div>
+    </div>
+
+    <!-- Archive -->
+    <div data-tab-panel="archive" class="card hidden">
+      <div class="p-4 border-b border-slate-100">
+        <p class="text-sm font-semibold">Archived &amp; Deleted Records</p>
+        <p class="text-xs text-slate-400 mt-1">Financial records are never permanently deleted. Anything archived or deleted can be restored from here.</p>
+      </div>
+      <div id="archive-table" class="overflow-x-auto"></div>
+    </div>
+
+    <!-- Backup -->
+    <div data-tab-panel="backup" class="card p-6 hidden space-y-4">
+      <div>
+        <p class="text-sm font-semibold">Database Backup</p>
+        <p class="text-xs text-slate-400 mt-1">Business data is backed up automatically via MongoDB Atlas (point-in-time recovery). The app database is backed up separately on a schedule.</p>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="App.toast('Backup started (prototype).')" class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Run Backup Now</button>
+        <button onclick="App.toast('Restore wizard would open here (prototype).')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Restore from Backup</button>
+      </div>
+      <div class="pt-4 border-t border-slate-100">
+        <p class="text-xs font-medium text-slate-500 mb-2">Recent Backups</p>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between"><span>2026-10-24 03:00</span><span class="text-emerald-600">Success</span></div>
+          <div class="flex justify-between"><span>2026-10-23 03:00</span><span class="text-emerald-600">Success</span></div>
+          <div class="flex justify-between"><span>2026-10-22 03:00</span><span class="text-emerald-600">Success</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<div id="modal-invite" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Invite User</h2><button onclick="App.closeModal('modal-invite')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Invitation sent (prototype)." class="space-y-4">
+      <label class="text-sm block">Email<input type="email" required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="name@example.com" /></label>
+      <label class="text-sm block">Role
+        <select id="role-select" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select>
+      </label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-invite')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Send Invite</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  App.injectShell("settings");
+  App.initTabs(document.getElementById("tabs").parentElement);
+
+  document.getElementById("role-select").innerHTML = MOCK.roles.map(r => `<option value="${r.id}">${r.name}</option>`).join("");
+
+  App.renderTable(document.getElementById("users-table"), {
+    columns: [
+      { label: "User", render: u => `<p class="font-medium text-slate-800">${u.name}</p><p class="text-xs text-slate-400">${u.email}</p>` },
+      { label: "Role", render: u => App.badge(MOCK.roles.find(r => r.id === u.role).name, u.role === "admin" ? "teal" : "slate") },
+      { label: "Status", render: u => App.badge(u.status, u.status === "active" ? "green" : "amber") },
+      { label: "Last Active", render: u => u.lastActive ? App.fmtDate(u.lastActive) : "—" },
+      { label: "", cls: "text-right", render: u => u.role === "admin" ? "" : `<button onclick="if (confirm('Remove ${u.name}? They lose access immediately; records they created are kept.')) App.toast('User removed (prototype).')" class="text-xs font-medium text-slate-500 hover:text-rose-600">Remove</button>` },
+    ],
+    rows: MOCK.users,
+  });
+
+  const ALL_PERMS = [
+    ["view_income", "View Income"], ["manage_income", "Manage Income"],
+    ["view_expenses", "View Expenses"], ["manage_expenses", "Manage Expenses"],
+    ["view_accounts", "View Accounts"], ["manage_accounts", "Manage Accounts"],
+    ["view_investments", "View Investments"], ["manage_investments", "Manage Investments"],
+    ["manage_investment_types", "Manage Investment Types"],
+    ["view_liabilities", "View Liabilities"], ["manage_liabilities", "Manage Liabilities"],
+    ["view_reports", "View Reports"], ["view_documents", "View Documents"], ["manage_documents", "Manage Documents"],
+    ["view_recurring", "View Recurring/Reminders"], ["manage_recurring", "Manage Recurring/Reminders"], ["view_audit_log", "View Audit Log"],
+    ["manage_users", "Manage Users"], ["manage_backups", "Manage Backups"],
+    ["restore_records", "Restore Archived/Deleted Records"],
+  ];
+
+  document.getElementById("fx-rows").innerHTML = Object.entries(MOCK.exchangeRates)
+    .filter(([cur]) => cur !== MOCK.baseCurrency)
+    .map(([cur, rate]) => `
+      <label class="flex items-center gap-2 text-sm">
+        <span class="w-16 text-slate-500">1 ${MOCK.baseCurrency} =</span>
+        <input type="number" step="any" value="${rate}" class="w-32 border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+        <span class="font-medium">${cur}</span>
+      </label>`).join("");
+
+  App.renderTable(document.getElementById("archive-table"), {
+    columns: [
+      { label: "Record", render: a => a.record },
+      { label: "State", render: a => App.badge(a.state, a.state === "Deleted" ? "red" : "slate") },
+      { label: "By", render: a => a.by },
+      { label: "On", render: a => App.fmtDate(a.on) },
+      { label: "", cls: "text-right", render: () => `<button onclick="App.toast('Record restored (prototype).')" class="text-xs font-medium text-teal-700">Restore</button>` },
+    ],
+    rows: MOCK.archived,
+  });
+
+  function hasPerm(role, perm) {
+    return role.permissions.includes("*") || role.permissions.includes(perm);
+  }
+
+  const matrixHead = `<th class="text-left font-medium text-slate-500 px-3 py-2">Permission</th>` +
+    MOCK.roles.map(r => `<th class="text-center font-medium text-slate-500 px-3 py-2">${r.name}</th>`).join("");
+  const matrixRows = ALL_PERMS.map(([key, label]) => `
+    <tr class="border-t border-slate-100">
+      <td class="px-3 py-2 text-slate-700">${label}</td>
+      ${MOCK.roles.map(r => `<td class="px-3 py-2 text-center">${r.permissions.includes("*") ? '<span class="text-emerald-600 font-semibold">✓</span>' : `<input type="checkbox" ${hasPerm(r, key) ? "checked" : ""} class="rounded border-slate-300" />`}</td>`).join("")}
+    </tr>`).join("");
+  document.getElementById("permission-matrix").innerHTML = `<table class="w-full text-sm min-w-[560px]"><thead><tr>${matrixHead}</tr></thead><tbody>${matrixRows}</tbody></table>`;
+
+  App.renderTable(document.getElementById("audit-table"), {
+    columns: [
+      { label: "Timestamp", render: a => a.timestamp },
+      { label: "User", render: a => a.user },
+      { label: "Record", render: a => a.record },
+      { label: "Action", render: a => App.badge(a.action, "slate") },
+      { label: "Old Value", cls: "text-slate-400", render: a => a.old },
+      { label: "New Value", cls: "font-medium", render: a => a.new },
+    ],
+    rows: MOCK.auditLog,
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en" data-page="expenses">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Expenses · Johaan's Future</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="assets/css/styles.css" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+<div id="sidebar-root"></div>
+<div id="topbar-root"></div>
+
+<main id="page" class="lg:pl-64 pt-16 min-h-screen">
+  <div class="p-4 lg:p-8 space-y-6 max-w-7xl mx-auto">
+
+    <div class="flex items-center justify-between flex-wrap gap-3">
+      <div>
+        <h1 class="text-xl font-semibold">Expenses</h1>
+        <p class="text-sm text-slate-500">Personal and investment-related expenses, each optionally linked to an investment.</p>
+      </div>
+      <button data-requires="manage_expenses" onclick="App.openModal('modal-add-expense')" class="inline-flex items-center gap-2 bg-teal-700 hover:bg-teal-800 text-white text-sm font-medium rounded-lg px-4 py-2.5">+ Record Expense</button>
+    </div>
+
+    <div id="summary-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+
+    <div id="tabs" class="inline-flex bg-slate-100 rounded-lg p-1 text-sm">
+      <button data-tab="transactions" class="px-4 py-1.5 rounded-md font-medium bg-white shadow-sm text-slate-900">Transactions</button>
+      <button data-tab="categories" class="px-4 py-1.5 rounded-md font-medium text-slate-500">Categories</button>
+    </div>
+
+    <div data-tab-panel="transactions" class="card">
+      <div class="p-4 border-b border-slate-100 flex items-center gap-3 flex-wrap">
+        <input id="search" placeholder="Search expenses..." class="border border-slate-200 rounded-lg px-3 py-2 text-sm w-full max-w-xs outline-none focus:ring-2 focus:ring-teal-600/30" />
+        <select id="filter-type" class="border border-slate-200 rounded-lg px-3 py-2 text-sm">
+          <option value="">Personal &amp; investment</option>
+          <option value="Personal">Personal</option>
+          <option value="Investment">Investment</option>
+        </select>
+        <select id="filter-currency" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All currencies</option></select>
+        <select id="filter-account" class="border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">All accounts</option></select>
+        <input type="date" id="filter-from" class="border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+        <span class="text-xs text-slate-400">to</span>
+        <input type="date" id="filter-to" class="border border-slate-200 rounded-lg px-3 py-2 text-sm" />
+      </div>
+      <div id="tx-table" class="overflow-x-auto"></div>
+    </div>
+
+    <div data-tab-panel="categories" class="card p-5 hidden grid sm:grid-cols-2 gap-6">
+      <div>
+        <p class="text-sm font-semibold mb-3">Personal Categories</p>
+        <div class="flex flex-wrap gap-2" id="personal-cats"></div>
+      </div>
+      <div>
+        <p class="text-sm font-semibold mb-3">Investment Categories</p>
+        <div class="flex flex-wrap gap-2" id="investment-cats"></div>
+      </div>
+      <p class="sm:col-span-2 text-xs text-slate-400">Categories are user-defined — add your own any time from here.</p>
+      <button data-requires="manage_expenses" onclick="App.openModal('modal-add-category')" class="sm:col-span-2 w-fit text-sm font-medium text-teal-700">+ Add Category</button>
+    </div>
+  </div>
+</main>
+
+<div id="modal-add-expense" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4 overflow-y-auto">
+  <div class="card w-full max-w-lg p-6 my-8">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Record Expense</h2><button onclick="App.closeModal('modal-add-expense')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Expense saved (prototype)." class="grid grid-cols-2 gap-4">
+      <label class="text-sm">Date<input type="date" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Expense Type<select id="type-select" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Personal</option><option>Investment</option></select></label>
+      <label class="text-sm">Category<select id="cat-select" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm">Subcategory (optional)<input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. Groceries" /></label>
+      <label class="text-sm">Amount<input type="number" step="any" data-fx="amount" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Currency<select data-options="currency" data-fx="currency" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm"><span data-fx="rate-label">Exchange Rate</span><input type="number" step="any" data-fx="rate" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="text-sm">Base-Currency Amount<input readonly data-fx="base" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm bg-slate-50" /></label>
+      <label class="text-sm">Account<select id="acc-select" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></select></label>
+      <label class="text-sm">Payment Method<select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Bank Transfer</option><option>Card</option><option>Cash</option><option>Auto-debit</option></select></label>
+      <label class="text-sm">Tax Classification<select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Non-taxable</option><option>Taxable</option><option>Partially taxable</option><option>Tax status unknown</option></select></label>
+      <label class="text-sm">Linked Investment / Business<select id="inv-select" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option value="">— None —</option></select></label>
+      <label class="text-sm">Recurring?<select id="recurring-select" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>One-time</option><option>Recurring</option></select></label>
+      <label class="text-sm hidden" id="freq-wrap">Frequency<select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Weekly</option><option selected>Monthly</option><option>Quarterly</option><option>Yearly</option></select></label>
+      <label class="col-span-2 text-sm">Description<input class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" /></label>
+      <label class="col-span-2 text-sm">Notes<textarea rows="2" class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"></textarea></label>
+      <label class="col-span-2 text-sm">Attachment<input type="file" class="mt-1 w-full text-sm text-slate-500" /></label>
+      <p class="col-span-2 text-xs text-slate-400">Loan EMIs aren't expenses: record them as a payment on the liability, so only the interest counts as an expense.</p>
+      <div class="col-span-2 flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-add-expense')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Save Expense</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="modal-add-category" data-modal class="hidden fixed inset-0 z-50 flex items-center justify-center modal-backdrop bg-slate-900/30 p-4">
+  <div class="card w-full max-w-md p-6">
+    <div class="flex items-center justify-between mb-4"><h2 class="text-base font-semibold">Add Expense Category</h2><button onclick="App.closeModal('modal-add-category')" class="text-slate-400">✕</button></div>
+    <form data-mock-form="Category added (prototype)." class="space-y-4">
+      <label class="text-sm block">Expense Type<select class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm"><option>Personal</option><option>Investment</option></select></label>
+      <label class="text-sm block">Category Name<input required class="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="e.g. Childcare" /></label>
+      <div class="flex justify-end gap-2 pt-2">
+        <button type="button" onclick="App.closeModal('modal-add-category')" class="px-4 py-2 text-sm rounded-lg border border-slate-200">Cancel</button>
+        <button class="px-4 py-2 text-sm rounded-lg bg-teal-700 text-white font-medium">Add Category</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+  App.injectShell("expenses");
+  App.initTabs(document.getElementById("tabs").parentElement);
+
+  document.getElementById("inv-select").innerHTML += MOCK.investments.filter(i => i.status !== "sold").map(i => `<option value="${i.id}">${i.name}</option>`).join("");
+  document.getElementById("acc-select").innerHTML = MOCK.accounts.map(a => `<option>${a.name}</option>`).join("");
+
+  // Category list follows the chosen expense type.
+  const typeSelect = document.getElementById("type-select");
+  const fillCats = () => document.getElementById("cat-select").innerHTML = MOCK.expenseCategories[typeSelect.value].map(c => `<option>${c}</option>`).join("");
+  typeSelect.addEventListener("change", fillCats);
+  fillCats();
+  document.getElementById("recurring-select").addEventListener("change", e => document.getElementById("freq-wrap").classList.toggle("hidden", e.target.value !== "Recurring"));
+
+  const personalTotal = MOCK.expenseTransactions.filter(t => t.type === "Personal").reduce((s, t) => s + toBase(t.amount, t.currency), 0);
+  const investmentTotal = MOCK.expenseTransactions.filter(t => t.type === "Investment").reduce((s, t) => s + toBase(t.amount, t.currency), 0);
+  const grandTotal = personalTotal + investmentTotal;
+
+  App.renderCards(document.getElementById("summary-cards"), [
+    { label: "Total Expenses (Base)", value: App.fmtMoney(grandTotal) },
+    { label: "Personal Expenses", value: App.fmtMoney(personalTotal) },
+    { label: "Investment Expenses", value: App.fmtMoney(investmentTotal) },
+    { label: "Transactions Recorded", value: MOCK.expenseTransactions.length },
+  ]);
+
+  document.getElementById("filter-currency").innerHTML += [...new Set(MOCK.expenseTransactions.map(t => t.currency))].map(c => `<option>${c}</option>`).join("");
+  document.getElementById("filter-account").innerHTML += MOCK.accounts.map(a => `<option value="${a.id}">${a.name}</option>`).join("");
+
+  function renderExpenses() {
+    const f = id => document.getElementById(id).value;
+    const rows = MOCK.expenseTransactions
+      .filter(t => (!f("filter-type") || t.type === f("filter-type")) && (!f("filter-currency") || t.currency === f("filter-currency")) &&
+        (!f("filter-account") || t.account === f("filter-account")) && (!f("filter-from") || t.date >= f("filter-from")) && (!f("filter-to") || t.date <= f("filter-to")))
+      .sort((a, b) => b.date.localeCompare(a.date));
+    App.renderTable(document.getElementById("tx-table"), {
+      columns: [
+        { label: "Date", sort: t => t.date, render: t => App.fmtDate(t.date) },
+        { label: "Description", render: t => `<p class="font-medium text-slate-800">${t.desc}</p><p class="text-xs text-slate-400">${t.category}${t.subcategory ? " · " + t.subcategory : ""}</p>` },
+        { label: "Type", render: t => App.badge(t.type, t.type === "Investment" ? "teal" : "slate") },
+        { label: "Linked Investment", render: t => t.linkedInvestment ? MOCK.investments.find(i => i.id === t.linkedInvestment)?.name : "—" },
+        { label: "Amount", cls: "text-right font-medium text-rose-600", sort: t => toBase(t.amount, t.currency), render: t => "-" + App.fmtMoney(t.amount, t.currency) },
+        { label: "Account", render: t => MOCK.accounts.find(a => a.id === t.account)?.name },
+        { label: "Method", render: t => t.method },
+        { label: "", cls: "text-right", render: () => App.rowActions("manage_expenses", "expense") },
+      ],
+      rows,
+    });
+  }
+  renderExpenses();
+  ["filter-type", "filter-currency", "filter-account", "filter-from", "filter-to"].forEach(id => document.getElementById(id).addEventListener("change", renderExpenses));
+  App.wireTableSearch(document.getElementById("search"), "#tx-table tbody tr");
+
+  document.getElementById("personal-cats").innerHTML = MOCK.expenseCategories.Personal.map(c => App.badge(c, "slate")).join("");
+  document.getElementById("investment-cats").innerHTML = MOCK.expenseCategories.Investment.map(c => App.badge(c, "teal")).join("");
+</script>
+</body>
+</html>
